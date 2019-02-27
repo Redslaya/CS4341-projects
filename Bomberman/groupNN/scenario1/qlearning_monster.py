@@ -14,7 +14,6 @@ sys.path.insert(1, '../groupNN')
 from qlearning_character import QCharacter
 from monsters.stupid_monster import StupidMonster
 from monsters.selfpreserving_monster import SelfPreservingMonster
-from qlearning_character import calculate_state
 
 
 def save_obj(obj, name):
@@ -34,6 +33,8 @@ except:
     qtable = {}
 # qtable = {}
 
+
+
 #TODO Qtable appending not updating sometimes???
 for i in range(0, 20):
     w = open("weights.txt", "r")
@@ -51,24 +52,24 @@ for i in range(0, 20):
     #                             3, 9  # position
     #                             ))
 
-    # g.add_monster(SelfPreservingMonster("monster",  # name
-    #                                     "M",  # avatar
-    #                                     0, 0,  # position
-    #                                     2  # detection range
-    #                                     ))
+    g.add_monster(SelfPreservingMonster("monster",  # name
+                                        "M",  # avatar
+                                        1, 0,  # position
+                                        2  # detection range
+                                        ))
 
     # TODO Add your character
     q = QCharacter(qtable,   # starting q table
-                        weights[0],  # wb
-                        # weights[1],  # wm
-                        # weights[2],  # wg
+                        weights[0],  # wm
+                        weights[1],  # wg
                         # weights[3],  # ww
                         # weights[4],  # wcm
                         # weights[5],  # wcg
                                "Qlearn",  # name
                                 "Q",  # avatar
-                                1, 0  # position
+                                1, 3  # position
                                 )
+
     g.add_character(q)
     # Run!
     g.go()
@@ -77,8 +78,8 @@ for i in range(0, 20):
     print((q.x, q.y))
 
     w = open("weights.txt", "w")
-    weights[0] = q.w
-    # weights[1] = q.wm
+    weights[0] = q.wm
+    weights[1] = q.wg
     # weights[2] = q.wg
     # weights[3] = q.ww
     # weights[4] = q.wcm
@@ -87,8 +88,6 @@ for i in range(0, 20):
         w.write(str(weight) + "\n")
     w.close()
     weights.clear()
-    print(":::QTABLE:::")
-    for q in qtable.keys():
-        print(q, qtable[q])
+
 
 save_obj(qtable, "qtb")

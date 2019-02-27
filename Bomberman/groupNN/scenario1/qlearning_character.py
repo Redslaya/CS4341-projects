@@ -86,10 +86,10 @@ class QCharacter(CharacterEntity):
         return self.qtable[(state, action)]
 
     def choose_action(self, state, actions):
-        if random.uniform(0, 1) < epsilon:
-            return random.choice(actions)  # Pick an action randomly from set of valid actions
-        else:
-            return self.pickBestAction(state)
+        # if random.uniform(0, 1) < epsilon:
+        #     return random.choice(actions)  # Pick an action randomly from set of valid actions
+        # else:
+        return self.pickBestAction(state)
 
 
     def approximateQ(self, state, action, wrld):
@@ -311,8 +311,8 @@ def calculate_state(coords, wrld):
     dist = distance_to_exit(coords, wrld)
 
     # TODO Add distance to wall??
-    return closest_bomb(coords, wrld), monster, dist, closest_wall(coords, wrld)
-
+    #return closest_bomb(coords, wrld), monster, dist, closest_wall(coords, wrld)
+    return dist
 # ==================== FEATURES ==================== #
 #   - Distance to closest bomb
 #   - Distance to closest monster
@@ -353,7 +353,7 @@ def distance_to_exit(coords, wrld):
     dist = (len(aStar(coords, wrld, wrld.exitcell)) ** 2)
     if dist < 1:
         return 1
-    return 1 / dist
+    return  dist
 
 def closest_wall(coords, wrld):
     walls = get_walls(wrld)

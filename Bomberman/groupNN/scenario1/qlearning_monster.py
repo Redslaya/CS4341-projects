@@ -40,7 +40,7 @@ for i in range(0, 100):
         weights.append(float(line))
     w.close()
     # Create the game
-    g = Game.fromfile('map.txt')
+    g = Game.fromfile('map2.txt')
 
     # g.add_monster(StupidMonster("monster",  # name
     #                             "M",  # avatar
@@ -49,7 +49,7 @@ for i in range(0, 100):
 
     g.add_monster(SelfPreservingMonster("monster",  # name
                                         "M",  # avatar
-                                        3, 13,  # position
+                                        0, 0,  # position
                                         2  # detection range
                                         ))
 
@@ -63,7 +63,7 @@ for i in range(0, 100):
                         weights[5],  # wcg
                                "Qlearn",  # name
                                 "Q",  # avatar
-                                0, 0  # position
+                                3, 0  # position
                                 )
     g.add_character(q)
     # Run!

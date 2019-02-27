@@ -27,11 +27,15 @@ def load_obj(name):
         return pickle.load(f)
 
 weights = []
-qtable = load_obj("qtb")
-
+try:
+    qtable = load_obj("qtb")
+except:
+    print("Couldnt load Q")
+    qtable = {}
+# qtable = {}
 
 #TODO Qtable appending not updating sometimes???
-for i in range(0, 2):
+for i in range(0, 20):
     w = open("weights.txt", "r")
     for line in w.readlines():
         line = line.rstrip()
@@ -47,11 +51,11 @@ for i in range(0, 2):
     #                             3, 9  # position
     #                             ))
 
-    g.add_monster(SelfPreservingMonster("monster",  # name
-                                        "M",  # avatar
-                                        0, 0,  # position
-                                        2  # detection range
-                                        ))
+    # g.add_monster(SelfPreservingMonster("monster",  # name
+    #                                     "M",  # avatar
+    #                                     0, 0,  # position
+    #                                     2  # detection range
+    #                                     ))
 
     # TODO Add your character
     q = QCharacter(qtable,   # starting q table
@@ -63,7 +67,7 @@ for i in range(0, 2):
                         # weights[5],  # wcg
                                "Qlearn",  # name
                                 "Q",  # avatar
-                                3, 0  # position
+                                1, 0  # position
                                 )
     g.add_character(q)
     # Run!
@@ -83,6 +87,8 @@ for i in range(0, 2):
         w.write(str(weight) + "\n")
     w.close()
     weights.clear()
-
+    print(":::QTABLE:::")
+    for q in qtable.keys():
+        print(q, qtable[q])
 
 save_obj(qtable, "qtb")

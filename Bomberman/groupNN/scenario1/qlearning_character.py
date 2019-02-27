@@ -40,36 +40,43 @@ class QCharacter(CharacterEntity):
         # return closest_bomb(), closest_monster((coords[0], coords[1]), wrld), monster_direction(coords, wrld), dist
 
     def do(self, wrld):
-        print("REAL WORLD COORDINATES IN DO:", self.x, self.y)
-        print("STATE: ", calculate_state((self.x, self.y), wrld))
-        print("REWARD OF GOING RIGHT NEXT TO GOAL: ")
-        print(self.r(wrld, (1, 0)))
-        if not self.threatened(wrld):
-            path = aStar((self.x, self.y), wrld, wrld.exitcell)  # (7, 18) usualy
-            print("Path " + str(path))
-            state = calculate_state((self.x, self.y), wrld)
-            move = path[len(path) - 1]
-            self.approximateQ(state, move, wrld)
-            #print("move " + str(move))
-            print(self.r(wrld, (move[0] - self.x, move[1] - self.y)))
-            self.move(move[0] - self.x, move[1] - self.y)
-            self.last_state_action = (state, move)
-            pass
-        else:
-            # If we are threatened, we do qlearning
-            state = calculate_state((self.x, self.y), wrld)
-            move = self.policy(state, wrld)
-            # TODO Check that this is right.....
-            #self.approximateQ(state, move, wrld)
-            print(self.w)
+        state = calculate_state((self.x, self.y), wrld)
+        actions = self.valid_moves(wrld)
+        rel_actions = []
+        for a in actions:
+            rel_actions.append(( a[0] - self.x,  a[1] - self.y))
 
-            print("SELECTED MOVE FROM POLICY: ", move)
-            self.approximateQ(self.last_state, self.last_action, wrld)
-            self.last_action = move
-            self.last_state = state
-            print("UPDATE Q VALUE::: ", self.qtable[(state, move)])
-            self.move(move[0], move[1])
-            pass
+        next_states = []
+
+        for a in rel_actions:
+            next_states.append(self.getNextState(wrld, a))
+
+        best_best_q = -float('inf')
+        best_best_a = []
+
+        for state in next_states:
+            best_q, best_a = self.maxQ(state, rel_actions) #rel actions from that state
+
+            if best_q == 'exited':
+                best_best_a = [best_a]
+                break
+            if best_q > best_best_q:
+                best_best_q = best_q
+                best_best_a = [best_a]
+            if best_q == best_best_q:
+                best_best_a.append(best_a)
+
+        best_a = random.choice(best_best_a)
+
+
+        self.qtable[(state, best_a )] = self.r(wrld, best_a) + gamma * best_best_q
+        print( "MOVE:::     ", best_a[0], best_a[1])
+        self.move(best_a[0], best_a[1])
+
+
+
+
+
 
 
     def choose_action(self, state, actions, wrld):
@@ -111,7 +118,7 @@ class QCharacter(CharacterEntity):
 
         # TODO FEATURES SHOULD BE EVALUATED !!!AFTER!!! TAKING SELECTED MOVE. So need an extra feature method for each.
 
-        delta = (self.r(wrld, action) + gamma * self.maxQ(self.getNextState(wrld, action), wrld)) - self.qtable[(state, action)]
+        # delta = (self.r(wrld, action) + gamma * self.maxQ(self.getNextState(wrld, action), wrld)) - self.qtable[(state, action)]
 
         #self.w = self.w + alpha * delta * distance_to_exit((self.x, self.y), wrld)
 
@@ -136,9 +143,9 @@ class QCharacter(CharacterEntity):
         # wcg = self.fcg(action,wrld)
         # self.wcg = self.wcg + alpha * delta * self.fcg(action, wrld)
         # print("FCG: ", wcg)
-
-        self.qtable[(state, action)] = self.r(wrld, action) + gamma * self.maxQ(state, wrld)
-        self.w = self.w + alpha * delta * distance_to_exit((self.x, self.y), wrld)
+        maxQ = self.maxQ(self.getNextStates(wrld, action), wrld)
+        self.qtable[(state, action)] = self.r(wrld, action) + gamma * maxQ
+        # self.w = self.w + alpha * delta * distance_to_exit((self.x, self.y), wrld)
         print(self.qtable[state, action])
 
     def getNextState(self, wrld, action):
@@ -148,8 +155,10 @@ class QCharacter(CharacterEntity):
         # print("action:", action)
         c.move(action[0], action[1])  # moves character in simulated world
         sim = sim.next()  # updates simulated world
+        c = sim[0].me(self)
         if c is not None:
-            return calculate_state((c.x, c.y), sim[0])  # gets state of simulated next world
+            x = calculate_state((c.x, c.y), sim[0])
+            return x  # gets state of simulated next world
         else:
             for event in sim[1]:
                 if event.tpe == Event.CHARACTER_KILLED_BY_MONSTER and event.character.name == self.name:
@@ -157,21 +166,27 @@ class QCharacter(CharacterEntity):
                 elif event.tpe == Event.CHARACTER_FOUND_EXIT and event.character.name == self.name:
                     return "exited"
 
-    def maxQ(self, state, wrld):
-        if state == "exited":
-            return 10
-        if state == "died":
-            return -10
+    def maxQ(self, state, actions):
+        best_a = []
+        best_q = -float('inf')
+
         keys = self.qtable.keys()
-        maxval = float('-inf')
-        for k in keys:
-            # print(k)
-            # print(state)
-            if state == k[0]:  # check if state part of key is the same as ours
-                score = self.qtable[k]
-                if score > maxval:
-                    maxval = score
-        return maxval
+
+
+        for a in actions:
+            if(state, a) not in self.qtable.keys():
+                self.qtable[(state, a)] = 0
+
+            val = self.qtable[(state, a)]
+
+            if val > best_q:
+                best_q = val
+                best_a = [a]
+            if val == best_q:
+                best_a.append(a)
+
+
+        return best_q, random.choice(best_a)
 
 
 
@@ -190,12 +205,12 @@ class QCharacter(CharacterEntity):
 
         if c is None:
             for event in sim[1]:
-                if event.tpe == Event.CHARACTER_KILLED_BY_MONSTER and event.character.name == self.name:
-                    #print("WE CAN DIE!!!")
-                    return -10
-                elif event.tpe == Event.CHARACTER_FOUND_EXIT and event.character.name == self.name:
+                if event.tpe == Event.CHARACTER_FOUND_EXIT and event.character.name == self.name:
                     #print("WE CAN WIN!!!!!")
                     return 10
+                elif event.tpe == Event.CHARACTER_KILLED_BY_MONSTER and event.character.name == self.name:
+                    # print("WE CAN DIE!!!")
+                    return -10
                 else:  # Timed out??
                     return -5
         else:
@@ -316,6 +331,8 @@ class QCharacter(CharacterEntity):
         for m in moves:
             if not wrld.wall_at(m[0], m[1]):
                 final.append(m)
+            elif wrld.exitcell == (m[0], m[1]):
+                return [m]
         return final
 
     # Resets styling for each cell. Prevents unexpected/inconsistent behavior that otherwise appears with coloring.
@@ -401,7 +418,7 @@ def distance_to_exit(coords, wrld):
     dist = (len(aStar(coords, wrld, wrld.exitcell)) ** 2)
     if dist < 1:
         return 1
-    return 1/dist
+    return math.sqrt(dist)
 
 def closest_wall(coords, wrld):
     walls = get_walls(wrld)

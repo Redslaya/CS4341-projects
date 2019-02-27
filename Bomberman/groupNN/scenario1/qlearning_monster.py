@@ -77,12 +77,13 @@ for i in range(0, 100):
     weights[1] = q.wm
     weights[2] = q.wg
     weights[3] = q.ww
+    weights[4] = q.wcm
+    weights[5] = q.wcg
     for weight in weights:
         w.write(str(weight) + "\n")
     w.close()
     weights.clear()
 
-print(qtable)
 
 f = open("qtable.txt", "w")
 

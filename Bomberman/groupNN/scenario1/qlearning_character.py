@@ -41,9 +41,9 @@ class QCharacter(CharacterEntity):
     def do(self, wrld):
         if not self.threatened(wrld):
             path = aStar((self.x, self.y), wrld, wrld.exitcell)  # (7, 18) usualy
-            print("Path " + str(path))
+            #print("Path " + str(path))
             move = path[len(path) - 1]
-            print("move " + str(move))
+            #print("move " + str(move))
             self.move(move[0] - self.x, move[1] - self.y)
             self.last_action = move[0] - self.x, move[1] - self.y
             pass
@@ -58,8 +58,8 @@ class QCharacter(CharacterEntity):
 
             self.approximateQ(state, move, wrld)
 
-            print("MOVE:")
-            print(move)
+            #print("MOVE:")
+            #print(move)
 
             print("WEIGHTS:")
             print(self.wb)
@@ -118,10 +118,14 @@ class QCharacter(CharacterEntity):
         self.ww = self.ww + alpha * delta * closest_wall((self.x, self.y), wrld)
 
         # Feature 5: does this take us closer to monster? -1 if so, +1 if not, 0 if same
-        self.wcm = self.wcm + alpha * delta * self.fcm(self, wrld)
+        wcm = self.fcm(action,wrld)
+        self.wcm = self.wcm + alpha * delta * self.fcm(action, wrld)
+        print("FCM: ", wcm)
 
         # Feature 6: does this take us closer to goal? +1 if so, -1 if not, 0 if same
-        self.wcg = self.wcg + alpha * delta * self.fcg(self, wrld)
+        wcg = self.fcg(action,wrld)
+        self.wcg = self.wcg + alpha * delta * self.fcg(action, wrld)
+        print("FCG: ", wcg)
 
         self.qtable[(state, action)] = self.qtable[(state, action)] + alpha * delta
 
@@ -144,7 +148,7 @@ class QCharacter(CharacterEntity):
         if c is None:
             for event in sim[1]:
                 if event.tpe == Event.CHARACTER_KILLED_BY_MONSTER and event.character.name == self.name:
-                    input("CHARACTER DIED!!!")
+                
                     return -10
                 elif event.tpe == Event.CHARACTER_FOUND_EXIT and event.character.name == self.name:
                     return 10
@@ -163,9 +167,16 @@ class QCharacter(CharacterEntity):
 
 
     # Closer to monster feature. Returns -1 if c is closer than self to monster, +1 if not, 0 if same
-    def fcm(self, c, wrld):
+    def fcm(self, move, wrld):
+        if move == "bomb":
+            return -1
         selfdist = closest_monster((self.x, self.y), wrld)
-        cdist = closest_monster((c.x, c.y), wrld)
+        cdist = closest_monster((move[0] + self.x, move[1] + self.y), wrld)
+        print("IN FCM")
+        print("cdist: ", cdist)
+        print("selfdist", selfdist)
+        
+
         if cdist < selfdist:
             return -1
         if cdist > selfdist:
@@ -174,9 +185,13 @@ class QCharacter(CharacterEntity):
 
 
     # Closer to goal feature. Returns +1 if c is closer than self to goal, -1 if not, 0 if same
-    def fcg(self, c, wrld):
+    def fcg(self, move, wrld):
+        #print("Move: ", move)
+        if move == "bomb":
+            return 0
         selfdist = distance_to_exit((self.x, self.y), wrld)
-        cdist = distance_to_exit((c.x, c.y), wrld)
+        cdist = distance_to_exit((move[0] + self.x, move[1] + self.y), wrld)
+
         if cdist < selfdist:
             return -1
         if cdist > selfdist:
@@ -219,7 +234,7 @@ class QCharacter(CharacterEntity):
                 candidates.append((state, m))
             elif not wrld.wall_at(m[0], m[1]):
                 rm = (m[0] - self.x, m[1] - self.y)
-                print(rm)  # Relative move
+                #print(rm)  # Relative move
                 candidates.append((state, rm))
 
         m = float('-inf')
@@ -229,8 +244,8 @@ class QCharacter(CharacterEntity):
         for c in candidates:
             if c not in keys:
                 self.qtable[c] = 0
-            print("Move, score;")
-            print(c, self.qtable[c])
+            #print("Move, score;")
+            #print(c, self.qtable[c])
             if self.qtable[c] > m:
                 moves.clear()
                 m = self.qtable[c]
@@ -241,7 +256,7 @@ class QCharacter(CharacterEntity):
 
     def threatened(self, wrld):
         # TODO Add a check for bombs as well
-        if closest_monster((self.x, self.y), wrld) <= 2:
+        if closest_monster((self.x, self.y), wrld) <= 3:
             return True
         return False
 
@@ -308,12 +323,14 @@ def calculate_state(coords, wrld):
 def closest_bomb(coords, wrld):
     bombs = get_bombs(wrld)
     if len(bombs) == 0:
-        return 100
+        return 0
     mindist = float('inf')
     for b in bombs:
         score = manhattan_distance(coords[0], coords[1], b[0], b[1])
         if score < mindist:
             mindist = score
+        if mindist == 0:
+           return 1
     return mindist
 
 
@@ -324,7 +341,8 @@ def closest_monster(coords, wrld):
     monsters = monster_tiles(wrld)
     p = float('inf')
     for m in monsters:
-        distance = len(aStar((x, y), wrld, m))
+        distance = len(aStar((x, y), wrld, m, False))
+        #print("Moster Dist:" , distance)
         if distance < p:
             p = distance
     return p
@@ -344,7 +362,9 @@ def closest_wall(coords, wrld):
         dist = manhattan_distance(coords[0], coords[1], w[0], w[1])
         if dist < mindist:
             mindist = dist
-    return mindist
+        if mindist == 0:
+            return 1
+    return 1/mindist
 
 # ========== END OF FEATURES ==========
 
@@ -367,7 +387,7 @@ def monster_direction(coords, wrld):
     yval = 0
     p = float('inf')
     for m in monsters:
-        distance = len(aStar((x, y), wrld, m))
+        distance = len(aStar((x, y), wrld, m,False))
         if distance < p:
             p = distance
             mcoords = (m[0], m[1])
@@ -423,43 +443,114 @@ def get_walls(wrld):
                 walls.append((x, y))
     return walls
 
-def aStar(start, wrld, goal):
-    x = start[0]
-    y = start[1]
-    # print("SELFX: " + str(self.x))
-    # print("SELFY: " + str(self.y))
+def aStar(char, wrld, mapTo, toExit=True):
+    # x = start[0]
+    # y = start[1]
+    # # print("SELFX: " + str(self.x))
+    # # print("SELFY: " + str(self.y))
+    # frontier = []
+    # frontier.append(((x, y), 0))
+    # came_from = {}
+    # cost_so_far = {}
+    # came_from[(x, y)] = None
+    # cost_so_far[(x, y)] = 0
+
+    # while not len(frontier) == 0:
+    #     frontier.sort(key=lambda tup: tup[1])  # check that
+    #     current = frontier.pop(0)
+    #     if (current[0][0], current[0][1]) == goal:
+    #         break
+    #     for next in get_adjacent(current[0], wrld):
+    #         #print(next)
+    #         if wrld.wall_at(next[0], next[1]):
+    #             cost_so_far[(next[0], next[1])] = 999
+    #             new_cost = 1000
+    #         else:
+    #             new_cost = cost_to(current[0], next) + cost_so_far[current[0]]
+    #             #new_cost = 1 + cost_so_far[current[0]]
+    #         if next not in cost_so_far or new_cost < cost_so_far[next]:
+    #             cost_so_far[next] = new_cost
+    #             frontier.append((next, new_cost + manhattan_distance(next[0], next[1], goal[0], goal[1])))
+    #             came_from[next] = current[0]
+
+
+    # cursor = goal
+    # path = []
+    # while not cursor == (x, y):
+    #     path.append(cursor)
+    #     try:
+    #         cursor = came_from[cursor]
+    #     except KeyError:
+    #         return [(0, 0)]
+    # return path
+
+        # print("Searching From " + str((char[0], char[1])))
+    # print("Searching for " + str(mapTo))
+    # A*
+    #print("PATH FROM: ", char, " PATH TO: ", mapTo)
+
     frontier = []
-    frontier.append(((x, y), 0))
+    frontier.append(((char[0], char[1]), 0))
     came_from = {}
     cost_so_far = {}
-    came_from[(x, y)] = None
-    cost_so_far[(x, y)] = 0
+    came_from[(char[0], char[1])] = None
+    cost_so_far[(char[0], char[1])] = 0
+    move = 1
+    # print("charX " + str(char[0]))
+    # print("charY " + str(char[1]))
+
+    monsters = []
+
+    for x in range(0, wrld.width()):
+        for y in range(0, wrld.height()):
+            if wrld.monsters_at(x, y):  # Finds all the monsters in the board
+                monsters.append((x, y))
+            if wrld.exit_at(x, y):  # Just in case exit is not where we expect it to be in the bottom right corner
+                ex = (x, y)
+
 
     while not len(frontier) == 0:
         frontier.sort(key=lambda tup: tup[1])  # check that
         current = frontier.pop(0)
-        if (current[0][0], current[0][1]) == goal:
+        if (current[0][0], current[0][1]) == mapTo:
+            #print("HERE")
             break
         for next in get_adjacent(current[0], wrld):
-            #print(next)
             if wrld.wall_at(next[0], next[1]):
-                cost_so_far[(next[0], next[1])] = 999
-                new_cost = 1000
+                    cost_so_far[(next[0], next[1])] = 999
+                    new_cost = 1000
+            
+            elif (next[0], next[1]) in monsters and  toExit:
+                    cost_so_far[(next[0], next[1])] = 99
+                    new_cost = 100
+                
             else:
                 new_cost = cost_to(current[0], next) + cost_so_far[current[0]]
-                #new_cost = 1 + cost_so_far[current[0]]
             if next not in cost_so_far or new_cost < cost_so_far[next]:
                 cost_so_far[next] = new_cost
-                frontier.append((next, new_cost + manhattan_distance(next[0], next[1], goal[0], goal[1])))
+                frontier.append((next, new_cost + manhattan_distance(next[0], next[1],mapTo[0], mapTo[1])))
                 came_from[next] = current[0]
 
+    # char.printOurWorld(wrld, cost_so_far)
 
-    cursor = goal
+    cursor = mapTo
     path = []
-    while not cursor == (x, y):
+    while not cursor == (char[0], char[1]):
+        move = cursor
         path.append(cursor)
         try:
             cursor = came_from[cursor]
         except KeyError:
-            return [(0, 0)]
+            # char.move(0, 0)
+            pass
+            break
+    #print("PATH: ", path)
+    # print(path)
+
+    if not len(path) == 0:
+        move = path[len(path) - 1]
+
+    # carries momentum? mayhaps not the best
+
     return path
+    # char.move(move[0] - char[0], move[1] - char[1])

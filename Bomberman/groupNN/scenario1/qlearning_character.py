@@ -66,7 +66,7 @@ class QCharacter(CharacterEntity):
 
         #update weights
 
-        delta = (self.r(wrld, rel_move) + gamma * best_q )- self.Q(wrld, (0,0))
+        delta = (self.r(wrld, rel_move) + gamma * best_q) - self.Q(wrld, rel_move)
 
         self.wm = self.wm + alpha * delta * dist_to_monster
 
@@ -94,9 +94,8 @@ class QCharacter(CharacterEntity):
     def Q(self, wrld, action):
         next_wrld = self.getNextWorld(wrld, action)
 
-        c = None
-        for char in next_wrld[0].characters.keys():
-            c = next_wrld[0].characters[char]
+        c = next_wrld[0].me(self)
+        print("CHARACTER:", c)
 
         if c is None:
             for event in next_wrld[1]:
@@ -109,8 +108,10 @@ class QCharacter(CharacterEntity):
                 else:  # Timed out??
                     return -1
 
+        print(c)
+        print(next_wrld)
 
-        goal_dist, monst_dist = calculate_features((c[0].x, c[0].y),next_wrld[0])
+        goal_dist, monst_dist = calculate_features((c.x, c.y), next_wrld[0])
 
 
         return (self.wg * goal_dist + self.wm * monst_dist)
@@ -158,13 +159,7 @@ class QCharacter(CharacterEntity):
                 else:  # Timed out??
                     return -5
         else:
-            return 0
-            # print("SIMULATED COORDINATES:", c.x, c.y)
-            # state = calculate_state((c.x, c.y), sim[0])
-            # keys = self.qtable.keys()
-            # if (state, action) not in keys:
-            #     self.qtable[(state, action)] = 0
-            # return self.qtable[(state, action)]
+            return 1
 
     # TODO this... closest_bomb & all other features should be normalized to 0,1
     def update_weights(self, delta, wrld, action):
@@ -291,7 +286,7 @@ def closest_monster(coords, wrld):
             p = distance
         if p == 0:
             p = 1
-    return 1/p
+    return 1 / p
 
 
 # Returns 1/(A* distance to exit)^2.

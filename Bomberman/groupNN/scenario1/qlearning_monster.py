@@ -36,7 +36,7 @@ except:
 
 
 #TODO Qtable appending not updating sometimes???
-for i in range(0, 20):
+for i in range(0, 100):
     w = open("weights.txt", "r")
     for line in w.readlines():
         line = line.rstrip()

@@ -2,6 +2,7 @@
 
 # This is necessary to find the main code
 import sys
+import pickle
 sys.path.insert(0, '../../bomberman')
 sys.path.insert(1, '..')
 
@@ -15,23 +16,22 @@ from monsters.stupid_monster import StupidMonster
 from monsters.selfpreserving_monster import SelfPreservingMonster
 from qlearning_character import calculate_state
 
-f = open("qtable.txt", "r")
+
+def save_obj(obj, name):
+    with open('obj/'+ name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+
+def load_obj(name):
+    with open('obj/' + name + '.pkl', 'rb') as f:
+        return pickle.load(f)
 
 weights = []
-qtable = {}
+qtable = load_obj("qtb")
 
-for line in f.readlines():
-    line = line.rstrip()
-    if not line:
-        break
-    key = line[:line.find(":")]
-    #print(key)
-    qtable[key] = line[line.find(":") + 2:]
-    #print(line[line.find(":") + 2:])
 
-f.close()
-
-for i in range(0, 100):
+#TODO Qtable appending not updating sometimes???
+for i in range(0, 2):
     w = open("weights.txt", "r")
     for line in w.readlines():
         line = line.rstrip()
@@ -56,11 +56,11 @@ for i in range(0, 100):
     # TODO Add your character
     q = QCharacter(qtable,   # starting q table
                         weights[0],  # wb
-                        weights[1],  # wm
-                        weights[2],  # wg
-                        weights[3],  # ww
-                        weights[4],  # wcm
-                        weights[5],  # wcg
+                        # weights[1],  # wm
+                        # weights[2],  # wg
+                        # weights[3],  # ww
+                        # weights[4],  # wcm
+                        # weights[5],  # wcg
                                "Qlearn",  # name
                                 "Q",  # avatar
                                 3, 0  # position
@@ -73,21 +73,16 @@ for i in range(0, 100):
     print((q.x, q.y))
 
     w = open("weights.txt", "w")
-    weights[0] = q.wb
-    weights[1] = q.wm
-    weights[2] = q.wg
-    weights[3] = q.ww
-    weights[4] = q.wcm
-    weights[5] = q.wcg
+    weights[0] = q.w
+    # weights[1] = q.wm
+    # weights[2] = q.wg
+    # weights[3] = q.ww
+    # weights[4] = q.wcm
+    # weights[5] = q.wcg
     for weight in weights:
         w.write(str(weight) + "\n")
     w.close()
     weights.clear()
 
 
-f = open("qtable.txt", "w")
-
-keys = qtable.keys()
-for k in keys:
-    f.write(str(k) + ": " + str(qtable[k]) + "\n")
-f.close()
+save_obj(qtable, "qtb")

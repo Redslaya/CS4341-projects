@@ -2,16 +2,11 @@ max_time 50
 bomb_time 10
 expl_duration 2
 expl_range 4
-+---+
-|W W|
-|W W|
-|W W|
-|W W|
-|W W|
-|W W|
-|W W|
-|W W|
-|W W|
-|W W|
-|WEW|
-+---+
++--------+
+|       W|
+|W      W|
+|W      W|
+|W      W|
+|W      W|
+|W     EW|
++--------+

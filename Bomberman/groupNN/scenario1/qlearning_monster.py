@@ -36,7 +36,7 @@ except:
 
 
 #TODO Qtable appending not updating sometimes???
-for i in range(0, 100):
+for i in range(0, 10):
     w = open("weights.txt", "r")
     for line in w.readlines():
         line = line.rstrip()
@@ -45,7 +45,7 @@ for i in range(0, 100):
         weights.append(float(line))
     w.close()
     # Create the game
-    g = Game.fromfile('map2.txt')
+    g = Game.fromfile('map.txt')
 
     # g.add_monster(StupidMonster("monster",  # name
     #                             "M",  # avatar
@@ -54,20 +54,19 @@ for i in range(0, 100):
 
     g.add_monster(SelfPreservingMonster("monster",  # name
                                         "M",  # avatar
-                                        1, 0,  # position
+                                        3, 9,  # position
                                         2  # detection range
                                         ))
 
     # TODO Add your character
-    q = QCharacter(qtable,   # starting q table
-                        weights[0],  # wm
+    q = QCharacter(     weights[0],  # wm
                         weights[1],  # wg
                         # weights[3],  # ww
                         # weights[4],  # wcm
                         # weights[5],  # wcg
                                "Qlearn",  # name
                                 "Q",  # avatar
-                                1, 3  # position
+                                0, 0  # position
                                 )
 
     g.add_character(q)

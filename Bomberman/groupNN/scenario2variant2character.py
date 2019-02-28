@@ -10,7 +10,7 @@ from colorama import Fore, Back, Style, init
 init(autoreset=True)
 
 
-class scenario2variant1character(CharacterEntity):
+class scenario2variant2character(CharacterEntity):
     def do(self, wrld):
         self.reset_cells(wrld)
         goalCoords = []
@@ -20,11 +20,15 @@ class scenario2variant1character(CharacterEntity):
             if(col_totals[i] == 8):
                 goalCoords.append((int((wrld.width() / 2) -1), i-1))
         goalCoords.append(wrld.exitcell)
-
+        threatened = False
         monsters = []
         bombs = []
         explosions = []
         ex = wrld.exitcell
+
+        if (self.x, self.y) in goalCoords:
+            self.place_bomb()
+
 
         for x in range(0, wrld.width()):
             for y in range(0, wrld.height()):
@@ -35,34 +39,57 @@ class scenario2variant1character(CharacterEntity):
                 if wrld.explosion_at(x, y):
                     explosions.append((x,y))
 
-        for crd in goalCoords:
-            if (self.x, self.y) == crd:
-                print("At Goal Coordinate")
+        # if not threatened go to goal directly
+        if not threatened:
+            for crd in goalCoords:
+                if (self.x, self.y) == crd:
+                    print("At Goal Coordinate")
 
-                break
+                    break
+                else:
+                    deltX, deltY, moveLen, path = aStar(self, wrld, crd)
+                    if(len(path) > 1):
+                        print("MAKING A* MOVE")
+                        self.move(deltX, deltY)
+                        return
+
+
+            dx,dy = 0,0
+
+            if len(bombs) > 0:
+
+                print("we have bombs")
+                xDist, yDist, dangerCoords, desiredMove, danger = bombDistance(self.x, self.y, bombs[0], wrld)
+
+
+                if not danger:
+                    dx, dy, moveLen, path = aStarNoWalls(self, wrld, ex)  # static a*
+                    xDist, yDist, dangerCoords, desiredMove, danger2 = bombDistance(self.x + dx, self.y +dy, bombs[0], wrld)
+                    if danger2:
+                        dx, dy = 0, 0
+                else:
+                    possible = []
+                    for move in desiredMove:
+                        if not wrld.wall_at(self.x + move[0], self.y + move[1]):
+                            possible.append(move)
+
+                    # print("POSSIBLE MOVES\n", possible)
+                    dx = possible[0][0]
+                    dy = possible[0][1]
+            elif len(explosions) > 0:
+                dx, dy = 0,0
+                pass
             else:
-                deltX, deltY, moveLen, path = aStar(self, wrld, crd)
-                if(len(path) > 1):
-                    print("MAKING A* MOVE")
-                    self.move(deltX, deltY)
-                    return
-
-
-        dx,dy = 0,0
-
-
-        if len(bombs) > 0:
-
-            print("we have bombs")
-            xDist, yDist, dangerCoords, desiredMove, danger = bombDistance(self.x, self.y, bombs[0], wrld)
-
-
-            if not danger:
                 dx, dy, moveLen, path = aStarNoWalls(self, wrld, ex)  # static a*
-                xDist, yDist, dangerCoords, desiredMove, danger2 = bombDistance(self.x + dx, self.y +dy, bombs[0], wrld)
-                if danger2:
-                    dx, dy = 0, 0
-            else:
+
+
+
+            if(wrld.wall_at(self.x + dx, self.y+dy)):
+
+                print("Place Bomb")
+                self.place_bomb()
+
+                xDist, yDist, dangerCoords, desiredMove, danger = bombDistance(self.x, self.y, (self.x, self.y), wrld)
                 possible = []
                 for move in desiredMove:
                     if not wrld.wall_at(self.x + move[0], self.y + move[1]):
@@ -71,31 +98,18 @@ class scenario2variant1character(CharacterEntity):
                 # print("POSSIBLE MOVES\n", possible)
                 dx = possible[0][0]
                 dy = possible[0][1]
-        elif len(explosions) > 0:
-            dx, dy = 0,0
+
+
+            self.move(dx, dy)
             pass
         else:
-            dx, dy, moveLen, path = aStarNoWalls(self, wrld, ex)  # static a*
-
-
-
-        if(wrld.wall_at(self.x + dx, self.y+dy)):
-
-            print("Place Bomb")
-            self.place_bomb()
-
-            xDist, yDist, dangerCoords, desiredMove, danger = bombDistance(self.x, self.y, (self.x, self.y), wrld)
-            possible = []
-            for move in desiredMove:
-                if not wrld.wall_at(self.x + move[0], self.y + move[1]):
-                    possible.append(move)
-
-            # print("POSSIBLE MOVES\n", possible)
-            dx = possible[0][0]
-            dy = possible[0][1]
-
-
-        self.move(dx, dy)
+            #
+            # q learning here we need to add a bomb place function
+            # probably use a* no walls as a feature that sits between 0< f < dist_to_goal
+            # maybe consider manhattan distance in here
+            # need a reward for reaching a goal and placing a bomb
+            #
+            pass
 
     def calculateMove(self, wrld):
         xcoord = self.x

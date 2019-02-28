@@ -79,6 +79,8 @@ for i in range(0, 2):
     w.close()
     weights.clear()
 
+
+
 print("WON: ", won)
 print("LOST: ", lost)
 print("TOTAL: ", won + lost)

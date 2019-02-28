@@ -21,7 +21,7 @@ epsilon = 0.2
 
 class QCharacter(CharacterEntity):
 
-    def __init__(self, wm, wg, *args, **kwargs):
+    def __init__(self, wm, wg, ww, *args, **kwargs):
         super(QCharacter, self).__init__(*args, **kwargs)
         # Whether this character wants to place a bomb
         self.maybe_place_bomb = False
@@ -30,6 +30,7 @@ class QCharacter(CharacterEntity):
         # self.w = w  # weight of bomb feature
         self.wm = wm  # weight of monster distance feature
         self.wg = wg  # weight of goal distance
+        self.ww = ww  # weight of wall distance
         # self.ww = ww  # weight of distance to closest wall
         # self.wcm = wcm  # weight of "are we moving closer to monster"
         # self.wcg = wcg  # weight of "are we moving closer to goal"+
@@ -37,6 +38,7 @@ class QCharacter(CharacterEntity):
         # return closest_bomb(), closest_monster((coords[0], coords[1]), wrld), monster_direction(coords, wrld), dist
 
     def do(self, wrld):
+        print("GET CORNERS::: ", get_corners(wrld))
         if not self.threatened(wrld):
             path = aStar((self.x, self.y), wrld, wrld.exitcell)
             move = path[len(path) - 1]
@@ -47,7 +49,7 @@ class QCharacter(CharacterEntity):
 
         # TODO If unobstructed, JUST move to goal
 
-        dist_to_goal, dist_to_monster = calculate_features((self.x, self.y), wrld)
+        dist_to_goal, dist_to_monster, dist_to_wall = calculate_features((self.x, self.y), wrld)
         actions = self.valid_moves(wrld)
 
         print("FARTHER FROM MONSTER, CLOSER TO GOAL:", self.parse_moves(actions, wrld))
@@ -82,9 +84,14 @@ class QCharacter(CharacterEntity):
         print("MOVE::::: ", move)
         delta = (self.r(wrld, move) + gamma * best_q) - self.Q(wrld, move)
 
+        print("DELTA::: ", delta)
         self.wm = self.wm + alpha * delta * dist_to_monster
 
         self.wg = self.wg + alpha * delta * dist_to_goal
+
+        self.ww = self.ww + alpha * delta * dist_to_wall
+
+        #self.wc = self.wc + alpha * delta * dist_to_corner
 
         self.yeet(move[0], move[1])
 
@@ -137,10 +144,10 @@ class QCharacter(CharacterEntity):
                 else:  # Timed out??
                     return -1
 
-        goal_dist, monst_dist = calculate_features((c.x, c.y), next_wrld[0])
+        goal_dist, monst_dist, wall_dist = calculate_features((c.x, c.y), next_wrld[0])
 
 
-        return (self.wg * goal_dist + self.wm * monst_dist)
+        return (self.wg * goal_dist + self.wm * monst_dist + self.ww * wall_dist)
 
     def choose_action(self, state, actions, wrld):
         if random.uniform(0, 1) < epsilon:
@@ -178,14 +185,14 @@ class QCharacter(CharacterEntity):
             for event in sim[1]:
                 if event.tpe == Event.CHARACTER_FOUND_EXIT and event.character.name == self.name:
                     #print("WE CAN WIN!!!!!")
-                    return 10
+                    return 100
                 elif event.tpe == Event.CHARACTER_KILLED_BY_MONSTER and event.character.name == self.name:
                     # print("WE CAN DIE!!!")
-                    return -10
+                    return -100
                 else:  # Timed out??
                     return -5
         else:
-            return 0
+            return 0.1
 
     # TODO this... closest_bomb & all other features should be normalized to 0,1
     def update_weights(self, delta, wrld, action):
@@ -274,10 +281,10 @@ def cost_to(current, next):
 def calculate_features(coords, wrld):
     monster = closest_monster((coords[0], coords[1]), wrld)
     dist = distance_to_exit(coords, wrld)
-
+    wall = closest_wall(coords, wrld)
     # TODO Add distance to wall??
     #return closest_bomb(coords, wrld), monster, dist, closest_wall(coords, wrld)
-    return dist, monster
+    return dist, monster, wall
 # ==================== FEATURES ==================== #
 #   - Distance to closest bomb
 #   - Distance to closest monster
@@ -350,7 +357,7 @@ def closest_wall(coords, wrld):
             mindist = dist
         if mindist == 0:
             return 1
-    return 1/mindist
+    return 1 / mindist
 
 # ========== END OF FEATURES ==========
 
@@ -429,8 +436,29 @@ def get_walls(wrld):
                 walls.append((x, y))
     return walls
 
-def aStar(char, wrld, mapTo, toExit=True):
+# Returns a list of all the coordinates with 5 walls (or board edge) touching it.
+# A corner looks like this:  X as in there are only 3 valid moves to move out of that space.
+#                           0X
+#                          XXX
+def get_corners(wrld):
+    corners = []
+    for x in range(0, wrld.width()):
+        for y in range(0, wrld.height()):
+            moves = available_moves((x, y), wrld)
+            if moves <= 3:
+                corners.append((x, y))
+    return corners
 
+# Returns the number of valid moves from the given coordinate.
+def available_moves(coords, wrld):
+    adjacent = get_adjacent(coords, wrld)
+    moves = 0
+    for a in adjacent:
+        if not wrld.wall_at(a[0], a[1]):
+            moves += 1
+    return moves
+
+def aStar(char, wrld, mapTo, toExit=True):
     frontier = []
     frontier.append(((char[0], char[1]), 0))
     came_from = {}

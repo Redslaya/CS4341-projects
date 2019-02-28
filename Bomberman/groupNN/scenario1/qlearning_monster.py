@@ -5,6 +5,7 @@ import sys
 import pickle
 sys.path.insert(0, '../../bomberman')
 sys.path.insert(1, '..')
+from events import Event
 
 # Import necessary stuff
 from game import Game
@@ -34,9 +35,12 @@ except:
 # qtable = {}
 
 
+won = 0
+lost = 0
+
 
 #TODO Qtable appending not updating sometimes???
-for i in range(0, 10):
+for i in range(0, 20):
     w = open("weights.txt", "r")
     for line in w.readlines():
         line = line.rstrip()
@@ -61,7 +65,7 @@ for i in range(0, 10):
     # TODO Add your character
     q = QCharacter(     weights[0],  # wm
                         weights[1],  # wg
-                        # weights[3],  # ww
+                        weights[2],  # ww
                         # weights[4],  # wcm
                         # weights[5],  # wcg
                                "Qlearn",  # name
@@ -72,14 +76,16 @@ for i in range(0, 10):
     g.add_character(q)
     # Run!
     g.go()
-    print(g.world.events)
-    print("G DONE::::::: " + str(g.done()))
+    for e in g.world.events:
+        print(e)
+        if e.tpe == Event.CHARACTER_FOUND_EXIT and e.character.name == q.name:
+            won += 1
     print((q.x, q.y))
 
     w = open("weights.txt", "w")
     weights[0] = q.wm
     weights[1] = q.wg
-    # weights[2] = q.wg
+    weights[2] = q.ww
     # weights[3] = q.ww
     # weights[4] = q.wcm
     # weights[5] = q.wcg
@@ -90,3 +96,8 @@ for i in range(0, 10):
 
 
 save_obj(qtable, "qtb")
+
+print("WON: ", won)
+print("LOST: ", lost)
+print("TOTAL: ", won + lost)
+print("PERCENT: ", won / (won + lost))

@@ -26,6 +26,7 @@ for i in range(0, 10):
     # TODO Add your character
     q = QCharacter(-100,  # wm
                    100,  # wg
+                   -10,  # ww
                    # weights[3],  # ww
                    # weights[4],  # wcm
                    # weights[5],  # wcg

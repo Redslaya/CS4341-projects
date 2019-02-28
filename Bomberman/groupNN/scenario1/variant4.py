@@ -11,10 +11,10 @@ from monsters.selfpreserving_monster import SelfPreservingMonster
 # TODO This is your code!
 sys.path.insert(1, '../groupNN')
 from testcharacter import TestCharacter
-from qlearning_character import QCharacter
+from variant4character import QCharacter
 
 # Create the game
-for i in range(0, 20):
+for i in range(0, 2):
     random.seed(i)  # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')
     g.add_monster(SelfPreservingMonster("aggressive", # name
@@ -24,9 +24,10 @@ for i in range(0, 20):
     ))
 
     # TODO Add your character
-    q = QCharacter(-100,  # wm
-                   100,  # wg
-                   # weights[3],  # ww
+    q = QCharacter(-171,
+                    97,
+                    -46,
+
                    # weights[4],  # wcm
                    # weights[5],  # wcg
                    "Qlearn",  # name
@@ -38,3 +39,4 @@ for i in range(0, 20):
 
     # Run!
     g.go()
+

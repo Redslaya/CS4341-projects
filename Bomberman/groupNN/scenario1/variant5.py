@@ -14,8 +14,16 @@ sys.path.insert(1, '../groupNN')
 from testcharacter import TestCharacter
 from qlearning_character import QCharacter
 
+weights = []
 
 for i in range(0, 20):
+    w = open("weights.txt", "r")
+    for line in w.readlines():
+        line = line.rstrip()
+        if not line:
+            break
+        weights.append(float(line))
+    w.close()
     # Create the game
     random.seed(i) # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')
@@ -30,9 +38,9 @@ for i in range(0, 20):
     ))
 
     # TODO Add your character
-    q = QCharacter(-100,  # wm
-                   100,  # wg
-                   # weights[3],  # ww
+    q = QCharacter(weights[0],  # wm
+                   weights[1],  # wg
+                   weights[2],  # ww
                    # weights[4],  # wcm
                    # weights[5],  # wcg
                    "Qlearn",  # name

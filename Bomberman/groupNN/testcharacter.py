@@ -30,7 +30,7 @@ class TestCharacter(CharacterEntity):
             dx, dy, length = self.aStar(wrld, monster, False)
             # print("Distance to : " + str(monster) + "  is " + str(length))
 
-        # self.move(dx,dy)
+        self.move(dx,dy)
 
     def calculateMove(self, wrld):
         xcoord = self.x

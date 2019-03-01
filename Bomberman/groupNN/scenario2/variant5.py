@@ -17,7 +17,7 @@ weights = []
 
 
 
-for i in range(0, 20):
+for i in range(0, 5):
 
     w = open("weights.txt", "r")
     for line in w.readlines():

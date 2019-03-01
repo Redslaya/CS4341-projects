@@ -159,9 +159,9 @@ class QCharacter(CharacterEntity):
                     return -100
                 elif event.tpe == Event.BOMB_HIT_CHARACTER and event.character.name == self.name:
                     # print("WE CAN DIE!!!")
-                    return -50
+                    return -100
                 else:  # Timed out??
-                    return -1
+                    return -5
 
         # goal_dist, monst_dist, corner_dist = calculate_features((c.x, c.y), next_wrld[0])
         goal_dist, monst_dist, corner_dist, bomb_dist, bomb_range, exp_dist = calculate_features((c.x, c.y), next_wrld[0])
@@ -206,9 +206,9 @@ class QCharacter(CharacterEntity):
                     return 100
                 elif event.tpe == Event.BOMB_HIT_CHARACTER and event.character.name == self.name:
                     # print("WE CAN DIE!!!")
-                    return -50
-                else:
                     return -100
+                else:
+                    return -5
         else:
             if (self.x, self.y) in get_corners(wrld):
                 return -15

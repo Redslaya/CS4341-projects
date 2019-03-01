@@ -14,7 +14,7 @@ from scenario2variant3character import QCharacter
 
 weights = []
 
-for i in range(50):
+for i in range(5):
 
     w = open("weights_s2_v3.txt", "r")
     for line in w.readlines():

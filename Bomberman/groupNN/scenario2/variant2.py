@@ -10,7 +10,7 @@ from monsters.stupid_monster import StupidMonster
 
 # TODO This is your code!
 sys.path.insert(1, '../groupNN')
-from scenario2variant5 import QCharacter
+from scenario2variant2character import QCharacter
 
 weights = []
 
@@ -32,12 +32,13 @@ for i in range(10):
     ))
 
     # TODO Add your character
-    q = QCharacter(weights[0],  # wm
-                   weights[1],  # wg
-                   weights[2],  # ww
-                   weights[3],  # weight distance to bomb
-                   weights[4],  # weight of "are we in the path of a bomb
-                   weights[5],  # weight of "are we gonna explode"
+    q = QCharacter(-365.106291646047,
+                    145.18273807091035,
+                    -44.68415383988697,
+                    -72.96359429428546,
+                    -581.0887980060246,
+                    -7.26757798996366,
+  # weight of "are we gonna explode"
                    # weights[4],  # wcm
                    # weights[5],  # wcg
                    "Qlearn",  # name

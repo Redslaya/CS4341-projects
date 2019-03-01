@@ -64,7 +64,7 @@ class QCharacter(CharacterEntity):
 
         # TODO !!!!!!!!!!!!!
 
-        dist_to_goal, dist_to_monster, dist_to_corner, dist_to_bomb, bomb_range, explosion_dist = calculate_features((self.x, self.y), wrld)
+        dist_to_goal, dist_to_monster, dist_to_corner, dist_to_bomb, in_bomb_range, explosion_dist = calculate_features((self.x, self.y), wrld)
         #dist_to_goal, dist_to_monster, dist_to_corner, = calculate_features((self.x, self.y), wrld)
         actions = self.valid_moves(wrld)
 
@@ -110,7 +110,7 @@ class QCharacter(CharacterEntity):
 
         self.wcb = self.wcb + alpha * delta * dist_to_bomb
 
-        self.wbr = self.wbr + alpha * delta * bomb_range
+        self.wbr = self.wbr + alpha * delta * in_bomb_range
 
         self.wxp = self.wxp + alpha * delta * explosion_dist
 
@@ -119,11 +119,16 @@ class QCharacter(CharacterEntity):
         # test the valid actions
         # choose best action
 
-        self.move(move[0], move[1])
-        print("WEIGHTS::::")
-        print("MONST WEIGHT :::: ", self.wm)
-        print("GOAL WEIGHT :::: ", self.wg)
-        pass
+        if len(wrld.explosions.values()) > 0:
+            if wrld.explosion_at(move[0] + self.x, move[1] + self.y) or bomb_range((move[0] + self.x, move[1] + self.y), wrld) != 0:
+                self.move(0,0)
+                pass
+        else:
+            self.move(move[0], move[1])
+            print("WEIGHTS::::")
+            print("MONST WEIGHT :::: ", self.wm)
+            print("GOAL WEIGHT :::: ", self.wg)
+            pass
 
     def bomb_if_able(self, wrld):
         if len(wrld.bombs) < 1:
@@ -229,12 +234,11 @@ class QCharacter(CharacterEntity):
         for m in moves:
             for b in wrld.bombs.values():
                 bomb = b
-            if not wrld.wall_at(m[0], m[1]) and not wrld.explosion_at(m[0], m[1]) and not (bomb_range((m[0], m[1]), wrld) != 0 and bomb is not None and bomb.timer <= 2):
+            if not wrld.wall_at(m[0], m[1]) and not wrld.explosion_at(m[0], m[1]) and not (bomb_range((m[0], m[1]), wrld) != 0 and bomb is not None and bomb.timer <= 1):
                 final.append(m)
             elif wrld.exitcell == (m[0], m[1]):
                 return [m]
         return final
-
     # Resets styling for each cell. Prevents unexpected/inconsistent behavior that otherwise appears with coloring.
 
 

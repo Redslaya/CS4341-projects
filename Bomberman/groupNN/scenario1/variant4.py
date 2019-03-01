@@ -34,9 +34,9 @@ for i in range(0, 20):
     ))
 
     # TODO Add your character
-    q = QCharacter(weights[0],  # wm
-                   weights[1],  # wg
-                   weights[2],  # ww
+    q = QCharacter(-171,
+                    97,
+                    -46,
                    # weights[4],  # wcm
                    # weights[5],  # wcg
                    "Qlearn",  # name

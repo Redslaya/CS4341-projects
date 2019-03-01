@@ -1,3 +1,9 @@
+# # TODO RECOMMENDED WEIGHTS:::
+# -100.83230412067729
+# 97.50308763796815
+# -52.49691236203184
+
+
 # This is necessary to find the main code
 import sys
 sys.path.insert(0, '../../bomberman')
@@ -10,7 +16,7 @@ from monsters.selfpreserving_monster import SelfPreservingMonster
 
 # TODO This is your code!
 sys.path.insert(1, '../groupNN')
-from scenario2variant5 import QCharacter
+from scenario2variant4character import QCharacter
 
 weights = []
 
@@ -47,6 +53,9 @@ for i in range(0, 4):
                    0, 0  # position
                    )
     g.add_character(q)
+
+
+
 
     # Run!
     g.go()

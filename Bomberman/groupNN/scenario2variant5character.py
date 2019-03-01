@@ -333,6 +333,7 @@ def aStar_to_monster(coords, wrld):
     y = coords[1]
     monsters = monster_tiles(wrld)
     p = float('inf')
+
     for m in monsters:
         path = aStar((x, y), wrld, m, False)
         print("PATH: ", path)

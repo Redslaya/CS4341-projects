@@ -11,7 +11,7 @@ from monsters.selfpreserving_monster import SelfPreservingMonster
 
 # TODO This is your code!
 sys.path.insert(1, '../groupNN')
-from scenario2variant5 import QCharacter
+from scenario2variant5character import QCharacter
 
 weights = []
 

@@ -15,6 +15,9 @@ from variant4character import QCharacter
 
 # Create the game
 for i in range(0, 2):
+
+
+
     random.seed(i)  # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')
     g.add_monster(SelfPreservingMonster("aggressive", # name

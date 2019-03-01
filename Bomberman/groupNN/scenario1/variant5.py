@@ -51,3 +51,23 @@ for i in range(0, 20):
 
     # Run!
     g.go()
+
+
+
+win = 0
+loss = 0
+
+with open('results.txt', 'r') as infile:
+    lines = infile.readlines()
+    for lin in lines:
+        if 'win' in lin:
+            win+= 1
+        else:
+            loss+= 1
+
+print("GAMES::", (win+loss))
+print("WIN:::", win/(win+loss))
+print("LOSS::", loss/(win+loss))
+
+with open('results.txt', 'w') as r:
+    r.write("")

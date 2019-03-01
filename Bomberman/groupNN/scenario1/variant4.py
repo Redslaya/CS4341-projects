@@ -27,7 +27,6 @@ for i in range(0, 2):
     q = QCharacter(-171,
                     97,
                     -46,
-
                    # weights[4],  # wcm
                    # weights[5],  # wcg
                    "Qlearn",  # name

@@ -9,7 +9,6 @@ from colorama import Fore, Back, Style, init
 
 init(autoreset=True)
 
-
 class scenario2variant1character(CharacterEntity):
     def do(self, wrld):
         self.reset_cells(wrld)

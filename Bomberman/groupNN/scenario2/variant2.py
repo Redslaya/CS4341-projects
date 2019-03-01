@@ -32,15 +32,9 @@ for i in range(10):
     ))
 
     # TODO Add your character
-    q = QCharacter(-365.106291646047,
-                    145.18273807091035,
-                    -44.68415383988697,
-                    -72.96359429428546,
-                    -581.0887980060246,
-                    -7.26757798996366,
-  # weight of "are we gonna explode"
-                   # weights[4],  # wcm
-                   # weights[5],  # wcg
+    q = QCharacter(weights[0],
+                   weights[1],
+                   weights[2],
                    "Qlearn",  # name
                    "Q",  # avatar
                    0, 0  # position
@@ -54,9 +48,9 @@ for i in range(10):
     weights[0] = q.wm
     weights[1] = q.wg
     weights[2] = q.wc
-    weights[3] = q.wcb
-    weights[4] = q.wbr
-    weights[5] = q.wxp
+    # weights[3] = q.wcb
+    # weights[4] = q.wbr
+    # weights[5] = q.wxp
     # weights[3] = q.ww
     # weights[4] = q.wcm
     # weights[5] = q.wcg
@@ -65,3 +59,16 @@ for i in range(10):
     w.close()
     weights.clear()
 
+win = 0
+loss = 0
+with open('results.txt', 'r') as infile:
+    lines = infile.readlines()
+    for line in lines:
+        if 'victory' in line:
+            win += 1
+        else:
+            loss += 1
+
+print("GAMES::: ", win + loss)
+print("WIN:::: ", win / (win + loss))
+print("Loss:::: ", loss / (win + loss))

@@ -1,35 +1,28 @@
 # This is necessary to find the main code
 import sys
 import math
+import random
+
 
 sys.path.insert(0, '../bomberman')
 # Import necessary stuff
 from entity import CharacterEntity
 from colorama import Fore, Back, Style, init
-
 init(autoreset=True)
 
 
 class scenario2variant2character(CharacterEntity):
+
+    def __init__(self, *args, **kwargs):
+        super(scenario2variant2character, self).__init__(*args, **kwargs)
+        self.state = "SAFE"
+
     def do(self, wrld):
         self.reset_cells(wrld)
-        goalCoords = []
-        col_totals = [sum(x) for x in zip(*wrld.grid)]
-        print(wrld.width())
-        for i  in range(len(col_totals)):
-            if(col_totals[i] == 8):
-                goalCoords.append((int((wrld.width() / 2) -1), i-1))
-        goalCoords.append(wrld.exitcell)
-        threatened = False
         monsters = []
         bombs = []
         explosions = []
         ex = wrld.exitcell
-
-        if (self.x, self.y) in goalCoords:
-            self.place_bomb()
-
-
         for x in range(0, wrld.width()):
             for y in range(0, wrld.height()):
                 if wrld.monsters_at(x, y):  # Finds all the monsters in the board
@@ -39,77 +32,118 @@ class scenario2variant2character(CharacterEntity):
                 if wrld.explosion_at(x, y):
                     explosions.append((x,y))
 
+        col_totals = [sum(x) for x in zip(*wrld.grid)]
+
+        monster_cords = []
+        for monster in monsters:
+            monster_cords.append(inMonsterCoordinate(monster, self, (self.x, self.y), wrld))
+
+
+
+
+        #find all coordinates that monsters can move to
+
+        dx, dy = 0,0
+
+
+        if sum(monster_cords) > 0:
+            self.state = "DANGERZONE"
+
+        print("CURRENT STATE::::::: ", self.state)
+
         # if not threatened go to goal directly
-        if not threatened:
-            for crd in goalCoords:
-                if (self.x, self.y) == crd:
-                    print("At Goal Coordinate")
+        #check in safe if in monster range
+        if self.state == 'SAFE':
 
-                    break
+            dx, dy, pathlen, path = aStar(self, wrld, ex)
+
+            if (self.x + dx, self.y + dy) is ex:
+                self.yeet(dx, dy)
+                pass
+
+            if pathlen is 1:
+                dx, dy, pathlenW, pathW = aStarNoWalls(self, wrld, ex)
+                if wrld.wall_at(self.x + dx, self.y+dy):
+                    if col_totals[self.y + dy] == 8:
+                        self.place_bomb()
+                        self.state = "BOMBING"
+                        xDist, yDist, dangerCoords, desiredMove, danger = bombDistance(self.x, self.y, (self.x, self.y), wrld)
+                        #calculate run away move from the position
+                        moves = valid_moves(wrld, (self.x, self.y))
+                        rel_moves = []
+                        for move in moves:
+                            rel_moves.append((move[0] - self.x, move[1] - self.y))
+                        good_moves = list(desiredMove.intersection(set(rel_moves)))
+
+                        m = random.choice(good_moves)
+                        self.yeet(m[0], m[1])
+                    else:
+                        if wrld.wall_at(self.x + dx, self.y + dy):
+                            moves = valid_moves(wrld, (self.x, self.y))
+                            moves.sort(key=lambda x: x[1])
+                            if not wrld.wall_at(moves[-1][0], moves[-1][1]):
+                                dx, dy = (moves[-1][0] - self.x, moves[-1][1] - self.y)
+                            elif len(bombs) == 0:
+                                self.place_bomb()
+                                self.state = "BOMBING"
+                                dx, dy = 0,0
+                        self.yeet(dx, dy)
                 else:
-                    deltX, deltY, moveLen, path = aStar(self, wrld, crd)
-                    if(len(path) > 1):
-                        print("MAKING A* MOVE")
-                        self.move(deltX, deltY)
-                        return
+                    self.yeet(dx, dy)
 
 
-            dx,dy = 0,0
 
-            if len(bombs) > 0:
-
-                print("we have bombs")
+            else:
+                self.yeet(dx, dy)
+        elif self.state == "BOMBING":
+            if len(bombs) == 0 and len(explosions) is not 0:
+                self.yeet(0,0)
+                # bomb exploding
+            elif len(explosions) is 0 and len(bombs) == 0:
+                self.state = "SAFE"
+                dx, dy, moveLen, path = aStarNoWalls(self, wrld, ex)  # static a*
+                self.yeet(dx, dy)
+            else:
                 xDist, yDist, dangerCoords, desiredMove, danger = bombDistance(self.x, self.y, bombs[0], wrld)
-
-
                 if not danger:
                     dx, dy, moveLen, path = aStarNoWalls(self, wrld, ex)  # static a*
                     xDist, yDist, dangerCoords, desiredMove, danger2 = bombDistance(self.x + dx, self.y +dy, bombs[0], wrld)
                     if danger2:
-                        dx, dy = 0, 0
+                        self.yeet(0, 0)
                 else:
-                    possible = []
-                    for move in desiredMove:
-                        if not wrld.wall_at(self.x + move[0], self.y + move[1]):
-                            possible.append(move)
+                    moves = valid_moves(wrld, (self.x, self.y))
+                    rel_moves = []
+                    for move in moves:
+                        rel_moves.append((move[0] - self.x, move[1] - self.y))
+                    good_moves = list(desiredMove.intersection(set(rel_moves)))
 
+                    m = random.choice(good_moves)
+                    self.yeet(m[0], m[1])
                     # print("POSSIBLE MOVES\n", possible)
-                    dx = possible[0][0]
-                    dy = possible[0][1]
-            elif len(explosions) > 0:
-                dx, dy = 0,0
-                pass
-            else:
-                dx, dy, moveLen, path = aStarNoWalls(self, wrld, ex)  # static a*
+
+        elif self.state == "DANGERZONE":
+            # make a preserving move
+            good_move = random.choice(get_safe_moves(self, (self.x, self.y), wrld, monsters, bombs))
+            self.place_bomb()
+            self.state = "BOMBING"
+            if len(bombs) == 0 and len(explosions) == 0:
+                self.state = "SAFE"
+
+            self.yeet(good_move[0], good_move[1])
 
 
-
-            if(wrld.wall_at(self.x + dx, self.y+dy)):
-
-                print("Place Bomb")
-                self.place_bomb()
-
-                xDist, yDist, dangerCoords, desiredMove, danger = bombDistance(self.x, self.y, (self.x, self.y), wrld)
-                possible = []
-                for move in desiredMove:
-                    if not wrld.wall_at(self.x + move[0], self.y + move[1]):
-                        possible.append(move)
-
-                # print("POSSIBLE MOVES\n", possible)
-                dx = possible[0][0]
-                dy = possible[0][1]
-
-
-            self.move(dx, dy)
-            pass
         else:
-            #
-            # q learning here we need to add a bomb place function
-            # probably use a* no walls as a feature that sits between 0< f < dist_to_goal
-            # maybe consider manhattan distance in here
-            # need a reward for reaching a goal and placing a bomb
-            #
-            pass
+            self.state = "SAFE"
+            move = random.choice(valid_moves(wrld, (self.x, self.y)))
+            self.yeet(move[0], move[1])
+
+
+
+
+    def yeet(self, dx, dy):
+        self.move(dx, dy)
+        pass
+
 
     def calculateMove(self, wrld):
         xcoord = self.x
@@ -135,7 +169,7 @@ class scenario2variant2character(CharacterEntity):
 
     def printOurWorld(self, wrld, cost_so_far):
         w, h = len(wrld.grid), len(wrld.grid[0])
-        print('\n\n')
+        # print('\n\n')
         world = [[0 for x in range(w)] for y in range(h)]
 
         # for row in world:
@@ -151,9 +185,9 @@ class scenario2variant2character(CharacterEntity):
 
             world[key[1]][key[0]] = "{0:03d}".format(cost_so_far[key])
         world[self.y][self.x] = "X"
-
-        for row in world:
-            print(row)
+        #
+        # for row in world:
+        #     print(row)
 
     # Returns a list of tiles which are unsafe due to monsters.
     def monster_tiles(self, wrld):
@@ -164,8 +198,8 @@ class scenario2variant2character(CharacterEntity):
                     for t in get_adjacent((x, y), wrld):
                         tiles.append(t)
                     tiles.append((x, y))
-        print("Monster tiles: ")
-        print(tiles)
+        # print("Monster tiles: ")
+        # print(tiles)
         return tiles
 
     # ==================== FEATURES ==================== #
@@ -189,7 +223,6 @@ class scenario2variant2character(CharacterEntity):
 # Returns a list of coordinates in the world surrounding the current one.
 # param current: An (x, y) point
 def get_adjacent(current, wrld):
-    # Returns a list of points in the form [(x1, y1), (x2, y2)]
     neighbors = []
     x = current[0]
     y = current[1]
@@ -215,6 +248,38 @@ def get_adjacent(current, wrld):
 
     return neighbors
 
+
+
+def distance_to_walls_should_place_bomb(wrld, char):
+    (x,y) = (char.x, char.y)
+
+    walls = []
+    for i in range(0, wrld.width()):
+        for j in range(0, wrld.height()):
+            if wrld.wall_at(i, j):
+                walls.append(((x,y), dist_to_wall((x,y), (i,j))))
+
+    closest_coords = None
+    closest_value = -float('inf')
+    for wall, dist in walls:
+        if dist > closest_value:
+            closest_value = dist
+            closest_coords = wall
+
+    return False if closest_value < .5 else True
+
+
+def dist_to_wall(pos, wall, wrld):
+    dist = abs(pos[0] - wall[0]) + abs(pos[1] - wall[1])
+
+    return 1 / dist
+
+def distance_to_exit(coords, wrld):
+    dist = (len(aStar(coords, wrld, wrld.exitcell)))
+    if dist == 0:
+        dist = 1
+
+    return 1 / dist
 
 def printFrontier(frontier):
     for val in frontier:
@@ -353,7 +418,7 @@ def aStar(char, wrld, mapTo, toExit=True, ignoreWall=False):
 
 
 def bombDistance(x, y, bomb, world):
-    print("BOMB AT" + str(bomb))
+    # print("BOMB AT" + str(bomb))
     xDist = abs(bomb[0] - x)
     yDist = abs(bomb[1] - y)
     danger = False
@@ -368,7 +433,7 @@ def bombDistance(x, y, bomb, world):
     dangerCoords = set(dangerCoords)
     if (x, y) in dangerCoords:
         danger = True
-        print("IN BAD SPOT")
+        # print("IN BAD SPOT")
     desiredMove = set([])
     if (danger):
         if x == bomb[0] and y == bomb[1]:  # standing on bomb
@@ -381,3 +446,51 @@ def bombDistance(x, y, bomb, world):
                                (1, -1)])  # move any diagonal or directly left or right to be out of y path
 
     return xDist, yDist, dangerCoords, desiredMove, danger
+
+
+def valid_moves(wrld, pos):
+    moves = get_adjacent((pos[0], pos[1]), wrld)
+    final = []
+    for m in moves:
+        if not wrld.wall_at(m[0], m[1]):
+            final.append(m)
+    return final
+
+
+def inMonsterCoordinate(monster, player, playerPos, wrld):
+
+    player.x = playerPos[0]
+    player.y = playerPos[1]
+    man = abs(monster[0] - playerPos[0]) + abs(monster[1]-playerPos[1])
+
+    # x, y, plen, path = aStar(player, wrld, monster, False)
+
+    if man <= 3 :
+        return True
+    else:
+        return False
+
+
+def get_safe_moves(char, player, wrld, monsters, bombs):
+    moves = valid_moves(wrld, player)
+    rel_moves = []
+    for move in moves:
+        rel_moves.append((move[0] - player[0], move[1] - player[1]))
+
+    good_moves = []
+
+    for monster in monsters:
+        for move in rel_moves:
+            if not inMonsterCoordinate(monster, char, (player[0] + move[0], player[1] + move[1]), wrld):
+                good_moves.append(move)
+
+    good_moves = list(set(good_moves))
+
+    for move in good_moves:
+        for bomb in bombs:
+            xDist, yDist, dangerCoords, desiredMove, danger = bombDistance(player[0] + move[0], player[1] + move[1], bomb, wrld)
+            if danger:
+                index = good_moves.index(move)
+                del good_moves[index]
+
+    return list(set(good_moves))

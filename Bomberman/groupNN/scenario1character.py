@@ -11,10 +11,10 @@ from colorama import Fore, Back, Style, init
 init(autoreset=True)
 
 
-class scenario2variant2character(CharacterEntity):
+class scenario1character(CharacterEntity):
 
     def __init__(self, *args, **kwargs):
-        super(scenario2variant2character, self).__init__(*args, **kwargs)
+        super(scenario1character, self).__init__(*args, **kwargs)
         self.state = "SAFE"
 
     def do(self, wrld):
@@ -42,27 +42,13 @@ class scenario2variant2character(CharacterEntity):
 
         dx, dy = 0,0
 
-        if(len(bombs) > 0) or len(explosions) > 0:
-            self.state == "BOMBING"
-
         if sum(monster_cords) > 0:
             self.state = "DANGERZONE"
 
         print("CURRENT STATE::::::: ", self.state)
 
-        # if not threatened go to goal directly
-        #check in safe if in monster range
-        if(self.x, self.y) == ex:
-            print("WHY DONT WE FUCKING EXIT")
-            self.move(0,0)
-            pass
-            return
 
         if self.state == 'SAFE':
-
-            print("SELF X IS ", self.x)
-            print("self y is ", self.y)
-            print("ex is " , ex)
             dx, dy, pathlen, path = aStar(self, wrld, ex)
 
             if (self.x + dx, self.y + dy) is ex:
@@ -100,37 +86,8 @@ class scenario2variant2character(CharacterEntity):
                         self.yeet(dx, dy)
                 else:
                     self.yeet(dx, dy)
-
-
-
             else:
                 self.yeet(dx, dy)
-        elif self.state == "BOMBING":
-            if len(bombs) == 0 and len(explosions) is not 0:
-                self.yeet(0,0)
-                # bomb exploding
-            elif len(explosions) is 0 and len(bombs) == 0:
-                self.state = "SAFE"
-                dx, dy, moveLen, path = aStarNoWalls(self, wrld, ex)  # static a*
-                self.yeet(dx, dy)
-            else:
-                xDist, yDist, dangerCoords, desiredMove, danger = bombDistance(self.x, self.y, bombs[0], wrld)
-                if not danger:
-                    dx, dy, moveLen, path = aStarNoWalls(self, wrld, ex)  # static a*
-                    xDist, yDist, dangerCoords, desiredMove, danger2 = bombDistance(self.x + dx, self.y +dy, bombs[0], wrld)
-                    if danger2:
-                        self.yeet(0, 0)
-                else:
-                    moves = valid_moves(wrld, (self.x, self.y))
-                    rel_moves = []
-                    for move in moves:
-                        rel_moves.append((move[0] - self.x, move[1] - self.y))
-                    good_moves = list(desiredMove.intersection(set(rel_moves)))
-
-                    m = random.choice(good_moves)
-                    self.yeet(m[0], m[1])
-                    # print("POSSIBLE MOVES\n", possible)
-
         elif self.state == "DANGERZONE":
             dx, dy, pathlen, path = aStar(self, wrld, ex)
 

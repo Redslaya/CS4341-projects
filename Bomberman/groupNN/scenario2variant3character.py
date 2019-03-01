@@ -23,7 +23,7 @@ epsilon = 0.2
 
 class QCharacter(CharacterEntity):
 
-    def __init__(self, wm, wg, wc, wcb, wbr, wxp, *args, **kwargs):
+    def __init__(self, wm, wg, wc, *args, **kwargs):
         super(QCharacter, self).__init__(*args, **kwargs)
         # Whether this character wants to place a bomb
         self.maybe_place_bomb = False
@@ -34,9 +34,9 @@ class QCharacter(CharacterEntity):
         self.wg = wg  # weight of goal distance
         # self.ww = ww  # weight of wall distance
         self.wc = wc
-        self.wcb = wcb
-        self.wbr = wbr
-        self.wxp = wxp
+        # self.wcb = wcb
+        # self.wbr = wbr
+        # self.wxp = wxp
         # self.ww = ww  # weight of distance to closest wall
         # self.wcm = wcm  # weight of "are we moving closer to monster"
         # self.wcg = wcg  # weight of "are we moving closer to goal"+
@@ -64,8 +64,8 @@ class QCharacter(CharacterEntity):
 
         # TODO !!!!!!!!!!!!!
 
-        dist_to_goal, dist_to_monster, dist_to_corner, dist_to_bomb, bomb_range, explosion_dist = calculate_features((self.x, self.y), wrld)
-        #dist_to_goal, dist_to_monster, dist_to_corner, = calculate_features((self.x, self.y), wrld)
+        #dist_to_goal, dist_to_monster, dist_to_corner, dist_to_bomb, in_bomb_range, explosion_dist = calculate_features((self.x, self.y), wrld)
+        dist_to_goal, dist_to_monster, dist_to_corner, = calculate_features((self.x, self.y), wrld)
         actions = self.valid_moves(wrld)
 
         rel_actions = []
@@ -108,22 +108,27 @@ class QCharacter(CharacterEntity):
 
         self.wc = self.wc + alpha * delta * dist_to_corner
 
-        self.wcb = self.wcb + alpha * delta * dist_to_bomb
-
-        self.wbr = self.wbr + alpha * delta * bomb_range
-
-        self.wxp = self.wxp + alpha * delta * explosion_dist
+        # self.wcb = self.wcb + alpha * delta * dist_to_bomb
+        #
+        # self.wbr = self.wbr + alpha * delta * in_bomb_range
+        #
+        # self.wxp = self.wxp + alpha * delta * explosion_dist
 
         # get the state
         # get the valid actions
         # test the valid actions
         # choose best action
 
-        self.move(move[0], move[1])
-        print("WEIGHTS::::")
-        print("MONST WEIGHT :::: ", self.wm)
-        print("GOAL WEIGHT :::: ", self.wg)
-        pass
+        if len(wrld.explosions.values()) > 0:
+            if wrld.explosion_at(move[0] + self.x, move[1] + self.y) or bomb_range((move[0] + self.x, move[1] + self.y), wrld) != 0:
+                self.move(0,0)
+                pass
+        else:
+            self.move(move[0], move[1])
+            print("WEIGHTS::::")
+            print("MONST WEIGHT :::: ", self.wm)
+            print("GOAL WEIGHT :::: ", self.wg)
+            pass
 
     def bomb_if_able(self, wrld):
         if len(wrld.bombs) < 1:
@@ -149,6 +154,12 @@ class QCharacter(CharacterEntity):
 
         c = next_wrld[0].me(self)
 
+        b = None
+
+        bombs = wrld.bombs.values()
+        for bomb in bombs:
+            b = bomb
+
         if c is None:
             for event in next_wrld[1]:
                 if event.tpe == Event.CHARACTER_FOUND_EXIT and event.character.name == self.name:
@@ -160,14 +171,16 @@ class QCharacter(CharacterEntity):
                 elif event.tpe == Event.BOMB_HIT_CHARACTER and event.character.name == self.name:
                     # print("WE CAN DIE!!!")
                     return -50
+                elif bomb_range((self.x + action[0], self.y + action[1]), wrld) != 0 and b is not None and b.timer <= 1:
+                    return -50
                 else:  # Timed out??
                     return -1
 
-        # goal_dist, monst_dist, corner_dist = calculate_features((c.x, c.y), next_wrld[0])
-        goal_dist, monst_dist, corner_dist, bomb_dist, bomb_range, exp_dist = calculate_features((c.x, c.y), next_wrld[0])
+        goal_dist, monst_dist, corner_dist = calculate_features((c.x, c.y), next_wrld[0])
+        #goal_dist, monst_dist, corner_dist, bomb_dist, bomb_range, exp_dist = calculate_features((c.x, c.y), next_wrld[0])
 
-        #return self.wg * goal_dist + self.wm * monst_dist + self.wc * corner_dist
-        return self.wg * goal_dist + self.wm * monst_dist + self.wc * corner_dist + self.wcb * bomb_dist + self.wbr * bomb_range + self.wxp * exp_dist
+        return self.wg * goal_dist + self.wm * monst_dist + self.wc * corner_dist
+        #return self.wg * goal_dist + self.wm * monst_dist + self.wc * corner_dist + self.wcb * bomb_dist + self.wbr * bomb_range + self.wxp * exp_dist
 
     # taking in world, rel_action -- calculates new reward
     def getNextWorld(self, wrld, action):
@@ -229,12 +242,11 @@ class QCharacter(CharacterEntity):
         for m in moves:
             for b in wrld.bombs.values():
                 bomb = b
-            if not wrld.wall_at(m[0], m[1]) and not wrld.explosion_at(m[0], m[1]) and not (bomb_range((m[0], m[1]), wrld) != 0 and bomb is not None and bomb.timer <= 2):
+            if not wrld.wall_at(m[0], m[1]) and not wrld.explosion_at(m[0], m[1]) and not (bomb_range((m[0], m[1]), wrld) != 0 and bomb is not None and bomb.timer <= 1):
                 final.append(m)
             elif wrld.exitcell == (m[0], m[1]):
                 return [m]
         return final
-
     # Resets styling for each cell. Prevents unexpected/inconsistent behavior that otherwise appears with coloring.
 
 
@@ -269,7 +281,7 @@ def calculate_features(coords, wrld):
     exp = closest_explosion(coords, wrld)
     # TODO Add distance to wall??
     #return closest_bomb(coords, wrld), monster, dist, closest_wall(coords, wrld)
-    return dist, monster, corner , bomb, br, exp  # wall
+    return dist, monster, corner , #bomb, br, exp   wall
 
 
 # ==================== FEATURES ==================== #

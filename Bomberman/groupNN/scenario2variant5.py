@@ -23,7 +23,7 @@ epsilon = 0.2
 
 class QCharacter(CharacterEntity):
 
-    def __init__(self, wm, wg, wc, *args, **kwargs):
+    def __init__(self, wm, wg, wc, wcb, wbr, wxp, *args, **kwargs):
         super(QCharacter, self).__init__(*args, **kwargs)
         # Whether this character wants to place a bomb
         self.maybe_place_bomb = False
@@ -34,9 +34,9 @@ class QCharacter(CharacterEntity):
         self.wg = wg  # weight of goal distance
         # self.ww = ww  # weight of wall distance
         self.wc = wc
-        # self.wcb = wcb
-        # self.wbr = wbr
-        # self.wxp = wxp
+        self.wcb = wcb
+        self.wbr = wbr
+        self.wxp = wxp
         # self.ww = ww  # weight of distance to closest wall
         # self.wcm = wcm  # weight of "are we moving closer to monster"
         # self.wcg = wcg  # weight of "are we moving closer to goal"+
@@ -63,8 +63,8 @@ class QCharacter(CharacterEntity):
 
         # TODO !!!!!!!!!!!!!
 
-        # dist_to_goal, dist_to_monster, dist_to_corner, dist_to_bomb, bomb_range, explosion_dist = calculate_features((self.x, self.y), wrld)
-        dist_to_goal, dist_to_monster, dist_to_corner, = calculate_features((self.x, self.y), wrld)
+        dist_to_goal, dist_to_monster, dist_to_corner, dist_to_bomb, bomb_range, explosion_dist = calculate_features((self.x, self.y), wrld)
+        #dist_to_goal, dist_to_monster, dist_to_corner, = calculate_features((self.x, self.y), wrld)
         actions = self.valid_moves(wrld)
 
         rel_actions = []
@@ -107,11 +107,11 @@ class QCharacter(CharacterEntity):
 
         self.wc = self.wc + alpha * delta * dist_to_corner
 
-        # self.wcb = self.wcb + alpha * delta * dist_to_bomb
-        #
-        # self.wbr = self.wbr + alpha * delta * bomb_range
-        #
-        # self.wxp = self.wxp + alpha * delta * explosion_dist
+        self.wcb = self.wcb + alpha * delta * dist_to_bomb
+
+        self.wbr = self.wbr + alpha * delta * bomb_range
+
+        self.wxp = self.wxp + alpha * delta * explosion_dist
 
         # get the state
         # get the valid actions
@@ -128,8 +128,9 @@ class QCharacter(CharacterEntity):
         if len(wrld.bombs) < 1:
             for a in get_adjacent((self.x, self.y), wrld):
                 if wrld.wall_at(a[0], a[1]):
-                    self.place_bomb()
-                    return
+                    if random.choice([True, True, False]):
+                        self.place_bomb()
+                        return
 
     def escape_bomb(self, wrld):
         if bomb_range((self.x, self.y), wrld) == 0:
@@ -173,14 +174,17 @@ class QCharacter(CharacterEntity):
                 elif event.tpe == Event.CHARACTER_KILLED_BY_MONSTER and event.character.name == self.name:
                     # print("WE CAN DIE!!!")
                     return -100
+                elif event.tpe == Event.BOMB_HIT_CHARACTER and event.character.name == self.name:
+                    # print("WE CAN DIE!!!")
+                    return -50
                 else:  # Timed out??
                     return -1
 
-        goal_dist, monst_dist, corner_dist = calculate_features((c.x, c.y), next_wrld[0])
-        #goal_dist, monst_dist, corner_dist, bomb_dist, bomb_range, exp_dist = calculate_features((c.x, c.y), next_wrld[0])
+        # goal_dist, monst_dist, corner_dist = calculate_features((c.x, c.y), next_wrld[0])
+        goal_dist, monst_dist, corner_dist, bomb_dist, bomb_range, exp_dist = calculate_features((c.x, c.y), next_wrld[0])
 
-        return self.wg * goal_dist + self.wm * monst_dist + self.wc * corner_dist
-        # return self.wg * goal_dist + self.wm * monst_dist + self.wc * corner_dist + self.wcb * bomb_dist + self.wbr * bomb_range + self.wxp * exp_dist
+        #return self.wg * goal_dist + self.wm * monst_dist + self.wc * corner_dist
+        return self.wg * goal_dist + self.wm * monst_dist + self.wc * corner_dist + self.wcb * bomb_dist + self.wbr * bomb_range + self.wxp * exp_dist
 
     # taking in world, rel_action -- calculates new reward
     def getNextWorld(self, wrld, action):
@@ -217,11 +221,12 @@ class QCharacter(CharacterEntity):
                 if event.tpe == Event.CHARACTER_FOUND_EXIT and event.character.name == self.name:
                     # print("WE CAN WIN!!!!!")
                     return 100
+                elif event.tpe == Event.BOMB_HIT_CHARACTER and event.character.name == self.name:
+                    # print("WE CAN DIE!!!")
+                    return -50
                 else:
                     return -100
         else:
-            if bomb_range((self.x, self.y), wrld) == 1:
-                return -50
             if (self.x, self.y) in get_corners(wrld):
                 return -15
             return 0.1
@@ -277,8 +282,8 @@ def calculate_features(coords, wrld):
     br = bomb_range(coords, wrld)
     exp = closest_explosion(coords, wrld)
     # TODO Add distance to wall??
-    # return closest_bomb(coords, wrld), monster, dist, closest_wall(coords, wrld)
-    return dist, monster, corner #, bomb, br, exp  # wall
+    #return closest_bomb(coords, wrld), monster, dist, closest_wall(coords, wrld)
+    return dist, monster, corner , bomb, br, exp  # wall
 
 
 # ==================== FEATURES ==================== #
@@ -293,7 +298,7 @@ def bomb_range(coords, wrld):
         print("BOMB:", b, b.x, b.y)
         if b.x - coords[0] == 0 or b.y - coords[1] == 0:
             print("TRUE!")
-            return 1
+            return 1 / (1 + manhattan_distance(coords[0], coords[1], b.x, b.y) + abs(b.timer - wrld.bomb_time) ** 2)
     return 0
 
 def closest_explosion(coords, wrld):
@@ -304,7 +309,7 @@ def closest_explosion(coords, wrld):
             mindist = dist
         if dist == 0:
             return 1
-    return 1 / mindist
+    return 1 / mindist ** 2
 
 # Returns an integer representing the A* distance to the closest monster.
 def closest_monster(coords, wrld):
@@ -364,7 +369,7 @@ def aStar_to_bomb(coords, wrld):
         # print("Moster Dist:" , distance)
         if distance < p:
             p = distance
-    return p
+    return 1 / p ** 2
 
 
 # Returns 1/(A* distance to exit).

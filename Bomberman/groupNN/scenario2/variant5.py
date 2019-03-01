@@ -17,7 +17,7 @@ weights = []
 
 
 
-for i in range(0, 3):
+for i in range(0, 20):
 
     w = open("weights.txt", "r")
     for line in w.readlines():
@@ -28,7 +28,7 @@ for i in range(0, 3):
     w.close()
 
     # Create the game
-    random.seed(i) # TODO Change this if you want different random choices
+    random.seed() # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')
     g.add_monster(StupidMonster("stupid", # name
                                 "S",      # avatar
@@ -43,9 +43,9 @@ for i in range(0, 3):
     q = QCharacter(weights[0],  # wm
                    weights[1],  # wg
                    weights[2],  # ww
-                   #weights[3],  # weight distance to bomb
-                   #weights[4],  # weight of "are we in the path of a bomb
-                   #weights[5],  # weight of "are we gonna explode"
+                   weights[3],  # weight distance to bomb
+                   weights[4],  # weight of "are we in the path of a bomb
+                   weights[5],  # weight of "are we gonna explode"
                    # weights[4],  # wcm
                    # weights[5],  # wcg
                                    "Qlearn",  # name
@@ -61,9 +61,9 @@ for i in range(0, 3):
     weights[0] = q.wm
     weights[1] = q.wg
     weights[2] = q.wc
-    # weights[3] = q.wcb
-    # weights[4] = q.wbr
-    # weights[5] = q.wxp
+    weights[3] = q.wcb
+    weights[4] = q.wbr
+    weights[5] = q.wxp
     # weights[3] = q.ww
     # weights[4] = q.wcm
     # weights[5] = q.wcg

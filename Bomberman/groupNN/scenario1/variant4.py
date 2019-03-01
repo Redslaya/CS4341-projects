@@ -13,9 +13,20 @@ sys.path.insert(1, '../groupNN')
 from testcharacter import TestCharacter
 from variant4character import QCharacter
 
+weights = []
+
 # Create the game
-for i in range(0, 2):
-    random.seed(i)  # TODO Change this if you want different random choices
+for i in range(0, 20):
+
+    w = open("weights.txt", "r")
+    for line in w.readlines():
+        line = line.rstrip()
+        if not line:
+            break
+        weights.append(float(line))
+    w.close()
+
+    random.seed()  # TODO Change this if you want different random choices
     g = Game.fromfile('map.txt')
     g.add_monster(SelfPreservingMonster("aggressive", # name
                                         "A",          # avatar
@@ -24,9 +35,9 @@ for i in range(0, 2):
     ))
 
     # TODO Add your character
-    q = QCharacter(-171,
-                    97,
-                    -46,
+    q = QCharacter( weights[0],
+                    weights[1],
+                    weights[2],
                    # weights[4],  # wcm
                    # weights[5],  # wcg
                    "Qlearn",  # name
@@ -39,3 +50,17 @@ for i in range(0, 2):
     # Run!
     g.go()
 
+    w = open("weights.txt", "w")
+    weights[0] = q.wm
+    weights[1] = q.wg
+    weights[2] = q.wc
+    # weights[3] = q.wcb
+    # weights[4] = q.wbr
+    # weights[5] = q.wxp
+    # weights[3] = q.ww
+    # weights[4] = q.wcm
+    # weights[5] = q.wcg
+    for weight in weights:
+        w.write(str(weight) + "\n")
+    w.close()
+    weights.clear()

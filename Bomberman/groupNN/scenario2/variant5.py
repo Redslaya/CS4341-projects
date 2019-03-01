@@ -17,7 +17,7 @@ weights = []
 
 
 
-for i in range(0, 3):
+for i in range(0, 20):
 
     w = open("weights.txt", "r")
     for line in w.readlines():
@@ -43,8 +43,8 @@ for i in range(0, 3):
     q = QCharacter(weights[0],  # wm
                    weights[1],  # wg
                    weights[2],  # ww
-                   #weights[3],  # weight distance to bomb
-                   #weights[4],  # weight of "are we in the path of a bomb
+                   weights[3],  # weight bomb range
+                   weights[4],  # weight of explosion dist
                    #weights[5],  # weight of "are we gonna explode"
                    # weights[4],  # wcm
                    # weights[5],  # wcg
@@ -61,8 +61,8 @@ for i in range(0, 3):
     weights[0] = q.wm
     weights[1] = q.wg
     weights[2] = q.wc
-    # weights[3] = q.wcb
-    # weights[4] = q.wbr
+    weights[3] = q.wbr
+    weights[4] = q.wxp
     # weights[5] = q.wxp
     # weights[3] = q.ww
     # weights[4] = q.wcm

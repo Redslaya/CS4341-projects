@@ -1,3 +1,7 @@
+# -285.14152411032387
+# 175.82459578976568
+# -60.063447750891335
+
 # This is necessary to find the main code
 import sys
 import operator
@@ -23,7 +27,7 @@ epsilon = 0.2
 
 class QCharacter(CharacterEntity):
 
-    def __init__(self, wm, wg, wc, wbr, wxp, *args, **kwargs):
+    def __init__(self, wm, wg, wc, *args, **kwargs):
         super(QCharacter, self).__init__(*args, **kwargs)
         # Whether this character wants to place a bomb
         self.maybe_place_bomb = False
@@ -34,9 +38,6 @@ class QCharacter(CharacterEntity):
         self.wg = wg  # weight of goal distance
         # self.ww = ww  # weight of wall distance
         self.wc = wc
-        # self.wcb = wcb
-        self.wbr = wbr
-        self.wxp = wxp
         # self.ww = ww  # weight of distance to closest wall
         # self.wcm = wcm  # weight of "are we moving closer to monster"
         # self.wcg = wcg  # weight of "are we moving closer to goal"+
@@ -44,36 +45,32 @@ class QCharacter(CharacterEntity):
         # return closest_bomb(), closest_monster((coords[0], coords[1]), wrld), monster_direction(coords, wrld), dist
 
     def do(self, wrld):
-        if not self.threatened(wrld) and len(wrld.bombs.values()) == 0 and len(wrld.explosions.keys()) == 0:
+        if not self.threatened(wrld):
             path = aStar((self.x, self.y), wrld, wrld.exitcell)
             move = path[len(path) - 1]
-            self.bomb_if_able(wrld)
+            print("MOVE: ", move)
             self.move(move[0] - self.x, move[1] - self.y)
             pass
             return
 
-        # TODO !!!!!!!!!!!!!
+        # TODO If unobstructed, JUST move to goal
 
-        # dist_to_goal, dist_to_monster, dist_to_corner, dist_to_bomb, bomb_range, explosion_dist = calculate_features((self.x, self.y), wrld)
-        dist_to_goal, dist_to_monster, dist_to_corner, bomb_range, exp_dist = calculate_features((self.x, self.y), wrld)
+        dist_to_goal, dist_to_monster, dist_to_corner = calculate_features((self.x, self.y), wrld)
         actions = self.valid_moves(wrld)
 
-
-        # if closest_wall((self.x, self.y), wrld) <= 2 and random.choice([True, False]):
-        #     self.place_bomb()
+        print("FARTHER FROM MONSTER, CLOSER TO GOAL:", self.parse_moves(actions, wrld))
 
         rel_actions = []
         for a in actions:
-            if a != "bomb":
-                rel_actions.append((a[0] - self.x, a[1] - self.y))
-            else:
-                rel_actions.append("bomb")
+            rel_actions.append((a[0] - self.x, a[1] - self.y))
 
         # list of (rel_action, (features))
         Qs = []
         for rel in rel_actions:
             # calculate features of that new world
             Qs.append((rel, self.Q(wrld, rel)))
+
+        print("QS: ", Qs)
 
         best_q = float("-inf")
         rel_move = []
@@ -102,41 +99,21 @@ class QCharacter(CharacterEntity):
 
         self.wc = self.wc + alpha * delta * dist_to_corner
 
-        # self.wcb = self.wcb + alpha * delta * dist_to_bomb
-        #
-        self.wbr = self.wbr + alpha * delta * bomb_range
-        #
-        self.wxp = self.wxp + alpha * delta * exp_dist
+        self.yeet(move[0], move[1])
 
         # get the state
         # get the valid actions
         # test the valid actions
         # choose best action
 
-        self.move(move[0], move[1])
+        # yeet that action
+
+    def yeet(self, x, y):
+        self.move(x, y)
         print("WEIGHTS::::")
         print("MONST WEIGHT :::: ", self.wm)
         print("GOAL WEIGHT :::: ", self.wg)
         pass
-
-    def bomb_if_able(self, wrld):
-        if len(wrld.bombs) < 1:
-            for a in get_adjacent((self.x, self.y), wrld):
-                if wrld.wall_at(a[0], a[1]):
-                    self.place_bomb()
-                    return
-
-    def escape_bomb(self, wrld):
-        if bomb_range((self.x, self.y), wrld) == 0:
-            self.move(0, 0)
-            pass
-        else:
-            adj = self.valid_moves(wrld)
-            for a in adj:
-                if bomb_range(a, wrld) == 0:
-                    self.move(a[0] - self.x, a[1] - self.y)
-                    pass
-
 
     # takes in valid moves, returns move that brings toward goal and move that brings toward monster
     def parse_moves(self, moves, wrld):
@@ -171,11 +148,16 @@ class QCharacter(CharacterEntity):
                 else:  # Timed out??
                     return -1
 
-        goal_dist, monst_dist, corner_dist, bomb_range, exp_dist = calculate_features((c.x, c.y), next_wrld[0])
-        #goal_dist, monst_dist, corner_dist, bomb_dist, bomb_range, exp_dist = calculate_features((c.x, c.y), next_wrld[0])
+        goal_dist, monst_dist, corner_dist = calculate_features((c.x, c.y), next_wrld[0])
 
-        #return self.wg * goal_dist + self.wm * monst_dist + self.wc * corner_dist
-        return self.wg * goal_dist + self.wm * monst_dist + self.wc * corner_dist + self.wbr * bomb_range + self.wxp * exp_dist
+        return (self.wg * goal_dist + self.wm * monst_dist + self.wc * corner_dist)
+
+    def choose_action(self, state, actions, wrld):
+        if random.uniform(0, 1) < epsilon:
+            return random.choice(actions)  # Pick an action randomly from set of valid actions
+        else:
+            move = self.select_best_move(state, actions, wrld)
+            self.approximateQ(state, move, wrld)
 
     # taking in world, rel_action -- calculates new reward
     def getNextWorld(self, wrld, action):
@@ -183,10 +165,7 @@ class QCharacter(CharacterEntity):
         c = sim.me(self)  # finds our character in the simulated world
         # Are monsters moving?????
         # print("action:", action)
-        if action == "bomb":
-            c.place_bomb()
-        else:
-            c.move(action[0], action[1])  # moves character in simulated world
+        c.move(action[0], action[1])  # moves character in simulated world
         sim = sim.next()  # updates simulated world
         c = sim[0].me(self)
         # sim[0] is world
@@ -199,10 +178,7 @@ class QCharacter(CharacterEntity):
         c = sim.me(self)  # finds our character in the simulated world
         # Are monsters moving?????
         # print("action:", action)
-        if action == "bomb":
-            c.place_bomb()
-        else:
-            c.move(action[0], action[1])  # moves character in simulated world
+        c.move(action[0], action[1])  # moves character in simulated world
         sim = sim.next()  # updates simulated world
 
         # print(monster_tiles(sim[0]))
@@ -212,33 +188,27 @@ class QCharacter(CharacterEntity):
                 if event.tpe == Event.CHARACTER_FOUND_EXIT and event.character.name == self.name:
                     # print("WE CAN WIN!!!!!")
                     return 100
-                else:
+                elif event.tpe == Event.CHARACTER_KILLED_BY_MONSTER and event.character.name == self.name:
+                    # print("WE CAN DIE!!!")
                     return -100
+                else:  # Timed out??
+                    return -5
         else:
-            if bomb_range((self.x, self.y), wrld) == 1:
-                return -50
             if (self.x, self.y) in get_corners(wrld):
                 return -15
             return 0.1
 
     def threatened(self, wrld):
-        # TODO Add a check for bombs as well
-        dist = aStar_to_monster((self.x, self.y), wrld)
-
-        print("Distance to monster: ", dist)
-        if dist is not None and dist <= 3:
+        # print("ASTAR TO MONSTER:::", aStar_to_monster((self.x, self.y), wrld))
+        if aStar_to_monster((self.x, self.y), wrld) <= 3:
             return True
-
-        if bomb_range((self.x, self.y), wrld) != 0:
-            return True
-
         return False
 
     def valid_moves(self, wrld):
         moves = get_adjacent((self.x, self.y), wrld)
         final = []
         for m in moves:
-            if not wrld.wall_at(m[0], m[1]) and not wrld.explosion_at(m[0], m[1]):
+            if not wrld.wall_at(m[0], m[1]):
                 final.append(m)
             elif wrld.exitcell == (m[0], m[1]):
                 return [m]
@@ -273,12 +243,9 @@ def calculate_features(coords, wrld):
     dist = distance_to_exit(coords, wrld)
     # wall = closest_wall(coords, wrld)
     corner = closest_corner(coords, wrld)
-    bomb = closest_bomb(coords, wrld)
-    br = bomb_range(coords, wrld)
-    exp = closest_explosion(coords, wrld)
     # TODO Add distance to wall??
     # return closest_bomb(coords, wrld), monster, dist, closest_wall(coords, wrld)
-    return dist, monster, corner, br, exp  #, bomb, br, exp  # wall
+    return dist, monster, corner  # wall
 
 
 # ==================== FEATURES ==================== #
@@ -287,24 +254,20 @@ def calculate_features(coords, wrld):
 #   - Distance to goal
 #   - Distance to closest wall
 
-
-def bomb_range(coords, wrld):
-    for b in wrld.bombs.values():
-        print("BOMB:", b, b.x, b.y)
-        if b.x - coords[0] == 0 or b.y - coords[1] == 0:
-            dist = manhattan_distance(b.x, b.y, coords[0], coords[1])
-            return 1 / (1 + dist)  # + wrld.bomb_time - b.timer
-    return 0
-
-def closest_explosion(coords, wrld):
+# Returns an integer representing the Manhattan distance to the closest bomb.
+def closest_bomb(coords, wrld):
+    bombs = get_bombs(wrld)
+    if len(bombs) == 0:
+        return 0
     mindist = float('inf')
-    for e in wrld.explosions.values():
-        dist = manhattan_distance(e.x, coords[0], e.y, coords[1])
-        if dist < mindist:
-            mindist = dist
-        if dist == 0:
+    for b in bombs:
+        score = manhattan_distance(coords[0], coords[1], b[0], b[1])
+        if score < mindist:
+            mindist = score
+        if mindist == 0:
             return 1
-    return 1 / mindist
+    return mindist
+
 
 # Returns an integer representing the A* distance to the closest monster.
 def closest_monster(coords, wrld):
@@ -342,34 +305,8 @@ def aStar_to_monster(coords, wrld):
     y = coords[1]
     monsters = monster_tiles(wrld)
     p = float('inf')
-    dists = []
     for m in monsters:
-        path = aStar((x, y), wrld, m, False)
-        print("PATH: ", path)
-        print(m[0], m[1])
-        distance = len(path)
-        print(distance)
-        if distance == 1 and path[0] == (m[0], m[1]):
-            dists.append(False)
-        else:
-            dists.append(True)
-            # print("Moster Dist:" , distance)
-            if distance < p:
-                p = distance
-    print("P:", p)
-    if True in dists:
-        return p
-    else:
-        return None
-
-# aStar distance to closest bomb
-def aStar_to_bomb(coords, wrld):
-    x = coords[0]
-    y = coords[1]
-    bombs = wrld.bombs.values()
-    p = float('inf')
-    for b in bombs:
-        distance = len(aStar((x, y), wrld, (b.x, b.y), False))
+        distance = len(aStar((x, y), wrld, m, False))
         # print("Moster Dist:" , distance)
         if distance < p:
             p = distance
@@ -390,20 +327,6 @@ def aStar_to_exit(coords, wrld):
     dist = (len(aStar(coords, wrld, wrld.exitcell)))
 
     return dist
-
-
-# Returns 1 / closestBomb
-def closest_bomb(coords, wrld):
-    bombs = wrld.bombs
-    mindist = float('inf')
-    for b in bombs.values():
-        print("BOMB:", b)
-        dist = len(aStar(coords, wrld, (b.x, b.y)))
-        if dist < mindist:
-            mindist = dist
-        if dist == 0:
-            return 1
-    return 1 / mindist
 
 
 def closest_wall(coords, wrld):
@@ -526,6 +449,7 @@ def closest_corner(coords, wrld):
         return 1
     return 1 / min_dist
 
+
 # Returns the number of valid moves from the given coordinate.
 def available_moves(coords, wrld):
     adjacent = get_adjacent(coords, wrld)
@@ -563,7 +487,7 @@ def aStar(char, wrld, mapTo, toExit=True):
             # print("HERE")
             break
         for next in get_adjacent(current[0], wrld):
-            if wrld.wall_at(next[0], next[1]) or wrld.explosion_at(next[0], next[1]):
+            if wrld.wall_at(next[0], next[1]):
                 cost_so_far[(next[0], next[1])] = 999
                 new_cost = 1000
 

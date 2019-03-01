@@ -73,7 +73,7 @@ class QCharacter(CharacterEntity):
                     if newPath is not []:
                         move = newPath[len(newPath) - 1]
 
-                self.bomb_if_able(wrld)
+                # self.bomb_if_able(wrld)
                 self.move(move[0] - self.x, move[1] - self.y)
                 pass
                 return
@@ -271,7 +271,7 @@ class QCharacter(CharacterEntity):
         dist = aStar_to_monster((self.x, self.y), wrld)
 
         if dist is not None and dist <= 3:
-            self.place_bomb()
+            # self.place_bomb()
             return True
         return False
 

@@ -56,7 +56,8 @@ class QCharacter(CharacterEntity):
             else:
                 path = aStar((self.x, self.y), wrld, wrld.exitcell)
                 move = path[len(path) - 1]
-                self.bomb_if_able(wrld)
+                if len(path) <= 1:
+                    self.bomb_if_able(wrld)
                 self.move(move[0] - self.x, move[1] - self.y)
                 pass
                 return
@@ -128,9 +129,8 @@ class QCharacter(CharacterEntity):
         if len(wrld.bombs) < 1:
             for a in get_adjacent((self.x, self.y), wrld):
                 if wrld.wall_at(a[0], a[1]):
-                    if random.choice([True, True, False]):
-                        self.place_bomb()
-                        return
+                    self.place_bomb()
+                    return
 
     def escape_bomb(self, wrld):
         if bomb_range((self.x, self.y), wrld) == 0:
@@ -143,23 +143,6 @@ class QCharacter(CharacterEntity):
                     self.move(a[0] - self.x, a[1] - self.y)
                     pass
 
-
-    # takes in valid moves, returns move that brings toward goal and move that brings toward monster
-    def parse_moves(self, moves, wrld):
-        distance_monster = aStar_to_monster((self.x, self.y), wrld)
-        distance_exit = aStar_to_exit((self.x, self.y), wrld)
-        closer_exit = (self.x + self.dx, self.y + self.dy)
-        farther_monster = (self.x + self.dx, self.y + self.dy)
-        for m in moves:
-            new_dist_monster = aStar_to_monster(m, wrld)
-            if new_dist_monster > distance_monster:
-                distance_monster = new_dist_monster
-                farther_monster = m
-            new_dist_exit = aStar_to_exit(m, wrld)
-            if new_dist_exit < distance_exit:
-                distance_exit = new_dist_exit
-                closer_exit = m
-        return farther_monster, closer_exit
 
     def Q(self, wrld, action):
         next_wrld = self.getNextWorld(wrld, action)
@@ -176,9 +159,9 @@ class QCharacter(CharacterEntity):
                     return -100
                 elif event.tpe == Event.BOMB_HIT_CHARACTER and event.character.name == self.name:
                     # print("WE CAN DIE!!!")
-                    return -50
+                    return -100
                 else:  # Timed out??
-                    return -1
+                    return -5
 
         # goal_dist, monst_dist, corner_dist = calculate_features((c.x, c.y), next_wrld[0])
         goal_dist, monst_dist, corner_dist, bomb_dist, bomb_range, exp_dist = calculate_features((c.x, c.y), next_wrld[0])
@@ -223,9 +206,9 @@ class QCharacter(CharacterEntity):
                     return 100
                 elif event.tpe == Event.BOMB_HIT_CHARACTER and event.character.name == self.name:
                     # print("WE CAN DIE!!!")
-                    return -50
-                else:
                     return -100
+                else:
+                    return -5
         else:
             if (self.x, self.y) in get_corners(wrld):
                 return -15
@@ -242,8 +225,11 @@ class QCharacter(CharacterEntity):
     def valid_moves(self, wrld):
         moves = get_adjacent((self.x, self.y), wrld)
         final = []
+        bomb = None
         for m in moves:
-            if not wrld.wall_at(m[0], m[1]) and not wrld.explosion_at(m[0], m[1]):
+            for b in wrld.bombs.values():
+                bomb = b
+            if not wrld.wall_at(m[0], m[1]) and not wrld.explosion_at(m[0], m[1]) and not (bomb_range((m[0], m[1]), wrld) != 0 and bomb is not None and bomb.timer <= 2):
                 final.append(m)
             elif wrld.exitcell == (m[0], m[1]):
                 return [m]
@@ -347,6 +333,7 @@ def aStar_to_monster(coords, wrld):
     y = coords[1]
     monsters = monster_tiles(wrld)
     p = float('inf')
+
     for m in monsters:
         path = aStar((x, y), wrld, m, False)
         print("PATH: ", path)
@@ -560,7 +547,7 @@ def aStar(char, wrld, mapTo, toExit=True):
             # print("HERE")
             break
         for next in get_adjacent(current[0], wrld):
-            if wrld.wall_at(next[0], next[1]):
+            if wrld.wall_at(next[0], next[1]) or wrld.explosion_at(next[0], next[1]):
                 cost_so_far[(next[0], next[1])] = 999
                 new_cost = 1000
 

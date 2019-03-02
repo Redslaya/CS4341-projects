@@ -10,7 +10,7 @@ from monsters.stupid_monster import StupidMonster
 
 # TODO This is your code!
 sys.path.insert(1, '../groupNN')
-from scenario2variant5 import QCharacter
+from scenario2variant2character import QCharacter
 
 weights = []
 
@@ -32,14 +32,9 @@ for i in range(10):
     ))
 
     # TODO Add your character
-    q = QCharacter(weights[0],  # wm
-                   weights[1],  # wg
-                   weights[2],  # ww
-                   weights[3],  # weight distance to bomb
-                   weights[4],  # weight of "are we in the path of a bomb
-                   weights[5],  # weight of "are we gonna explode"
-                   # weights[4],  # wcm
-                   # weights[5],  # wcg
+    q = QCharacter(weights[0],
+                   weights[1],
+                   weights[2],
                    "Qlearn",  # name
                    "Q",  # avatar
                    0, 0  # position
@@ -53,9 +48,9 @@ for i in range(10):
     weights[0] = q.wm
     weights[1] = q.wg
     weights[2] = q.wc
-    weights[3] = q.wcb
-    weights[4] = q.wbr
-    weights[5] = q.wxp
+    # weights[3] = q.wcb
+    # weights[4] = q.wbr
+    # weights[5] = q.wxp
     # weights[3] = q.ww
     # weights[4] = q.wcm
     # weights[5] = q.wcg
@@ -64,3 +59,16 @@ for i in range(10):
     w.close()
     weights.clear()
 
+win = 0
+loss = 0
+with open('results.txt', 'r') as infile:
+    lines = infile.readlines()
+    for line in lines:
+        if 'victory' in line:
+            win += 1
+        else:
+            loss += 1
+
+print("GAMES::: ", win + loss)
+print("WIN:::: ", win / (win + loss))
+print("Loss:::: ", loss / (win + loss))
